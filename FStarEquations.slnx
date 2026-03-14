@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FStar.UI/FStar.UI.csproj" />
+    <Project Path="src/FStarEquations.App.Tests/FStarEquations.App.Tests.csproj" />
+    <Project Path="src/FStarEquations.App/FStarEquations.App.csproj" />
+    <Project Path="src/FStarEquations/FStarEquations.csproj" />
+    <Project Path="src/FStarEquationsTests/FStarEquationsTests.csproj" />
+  </Folder>
+</Solution>
