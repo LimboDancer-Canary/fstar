@@ -1,4 +1,12 @@
 <Solution>
+  <Folder Name="/Docs/">
+    <File Path="Docs/BlazorVisualHarness_Design.md" />
+    <File Path="Docs/BlazorVisualHarness_ImplementationPlan.md" />
+    <File Path="Docs/FloatingSliderPanel_DesignDoc.md" />
+    <File Path="Docs/FStarEquations_TDD_Plan.md" />
+    <File Path="Docs/TheoryCards_ImplementationPlan.md" />
+    <File Path="Docs/The_Multiplier_and_the_Mirror.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/FStar.UI/FStar.UI.csproj" />
     <Project Path="src/FStarEquations.App.Tests/FStarEquations.App.Tests.csproj" />
