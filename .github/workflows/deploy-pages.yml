@@ -68,7 +68,7 @@ jobs:
               --css "../lib/katex/katex.min.css" \
               --katex="../lib/katex/" \
               --lua-filter=/tmp/mermaid.lua \
-              --variable header-includes='<style>body { margin: 3em 3em 0 3em; } pre.mermaid { text-align: center; background: none; border: none; }</style><script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true});</script>' \
+              --variable header-includes='<style>body { margin: 3em 3em 0 3em; } hr { margin: 1em 0; } pre.mermaid { text-align: center; background: none; border: none; }</style><script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true});</script>' \
               -o "output/wwwroot/docs/${filename}.html"
           done
 
