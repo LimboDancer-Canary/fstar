@@ -42,20 +42,61 @@ jobs:
       - name: Create 404.html for client-side routing
         run: cp output/wwwroot/index.html output/wwwroot/404.html
 
-      - name: Install pandoc
-        run: sudo apt-get install -y pandoc
+      - name: Install pandoc and mermaid CLI
+        run: |
+          sudo apt-get install -y pandoc
+          npm install -g @mermaid-js/mermaid-cli
 
-      - name: Convert docs to HTML
+      - name: Pre-render mermaid diagrams to SVG
         run: |
           mkdir -p output/wwwroot/docs
           for md in Docs/*.md; do
             filename=$(basename "$md" .md)
-            pandoc "$md" \
+            cp "$md" "/tmp/${filename}.md"
+            # Extract and render each mermaid block, replacing with SVG inline
+            python3 - "/tmp/${filename}.md" << 'PYEOF'
+          import sys, subprocess, tempfile, os, re
+          path = sys.argv[1]
+          with open(path, 'r', encoding='utf-8') as f:
+              content = f.read()
+          counter = 0
+          def replace_mermaid(m):
+              global counter
+              counter += 1
+              mermaid_code = m.group(1)
+              mmd = tempfile.NamedTemporaryFile(suffix='.mmd', mode='w', delete=False, encoding='utf-8')
+              mmd.write(mermaid_code)
+              mmd.close()
+              svg_path = mmd.name.replace('.mmd', '.svg')
+              try:
+                  subprocess.run(['mmdc', '-i', mmd.name, '-o', svg_path, '-b', 'transparent'], check=True, timeout=30)
+                  with open(svg_path, 'r', encoding='utf-8') as sf:
+                      svg = sf.read()
+                  return f'\n<div class="mermaid-diagram" align="center">\n{svg}\n</div>\n'
+              except Exception as e:
+                  print(f"Warning: mermaid render failed for block {counter}: {e}", file=sys.stderr)
+                  return m.group(0)
+              finally:
+                  os.unlink(mmd.name)
+                  if os.path.exists(svg_path):
+                      os.unlink(svg_path)
+          content = re.sub(r'```mermaid\s*\n(.*?)```', replace_mermaid, content, flags=re.DOTALL)
+          with open(path, 'w', encoding='utf-8') as f:
+              f.write(content)
+          PYEOF
+          done
+
+      - name: Convert docs to HTML
+        run: |
+          for md in Docs/*.md; do
+            filename=$(basename "$md" .md)
+            pandoc "/tmp/${filename}.md" \
               --standalone \
               --metadata title="" \
               --css "../css/Site.css" \
               --css "../lib/katex/katex.min.css" \
               --katex="../lib/katex/" \
+              --variable header-includes='<style>body { margin: 3em 3em 0 3em; } .mermaid-diagram svg { max-width: 100%; height: auto; }</style>' \
               -o "output/wwwroot/docs/${filename}.html"
           done
 
@@ -72,7 +113,7 @@ jobs:
             <link rel="stylesheet" href="css/Site.css" />
             <link rel="stylesheet" href="lib/katex/katex.min.css" />
             <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a2e; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 48rem; margin: 3em 3em 0 3em; padding: 0 1rem; line-height: 1.6; color: #1a1a2e; }
               h1 { border-bottom: 2px solid #3a86ff; padding-bottom: 0.5rem; }
               a { color: #3a86ff; text-decoration: none; }
               a:hover { text-decoration: underline; }
