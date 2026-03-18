@@ -15,12 +15,25 @@
 <ChartCard Title="Cobb-Douglas Output Surface"
            Description="Eq (1): O = M * product(fi^wi). Axes show two force components; M and all other forces held at slider values. Move any slider to see the surface shift.">
     <ChildContent>
-        <HeatMap Width="600" Height="400"
-                 XLabel="@(_componentLabels[_heatAxisX] + " (f" + (_heatAxisX + 1) + ")")"
-                 YLabel="@(_componentLabels[_heatAxisY] + " (f" + (_heatAxisY + 1) + ")")"
-                 Data="@_heatMapData"
-                 XValues="@_heatMapXValues"
-                 YValues="@_heatMapYValues" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <HeatMap Width="600" Height="400"
+                     XLabel="@(_componentLabels[_heatAxisX] + " (f" + (_heatAxisX + 1) + ")")"
+                     YLabel="@(_componentLabels[_heatAxisY] + " (f" + (_heatAxisY + 1) + ")")"
+                     Data="@_heatMapData"
+                     XValues="@_heatMapXValues"
+                     YValues="@_heatMapYValues"
+                     CrosshairX="@GetForces()[_heatAxisX]"
+                     CrosshairY="@GetForces()[_heatAxisY]"
+                     CrosshairTooltip="@_heatTooltipLines"
+                     ColorScaleMin="0"
+                     ColorScaleMax="@_heatColorMax" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Force Profile</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_radarAxes"
+                            CenterLabel="@("F=" + ComputeCurrentForce().ToString("F1"))" />
+            </div>
+        </div>
         <p class="chart-readout">
             Current output: <strong>O = @ComputeCurrentOutput().ToString("F2")</strong>
             &ensp;|&ensp;M=@_m.ToString("F1")
@@ -29,17 +42,18 @@
         <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
             Heatmap axes: @_componentLabels[_heatAxisX] vs @_componentLabels[_heatAxisY].
             All other components held at their slider values.
+            Color scale fixed at 0 to @_heatColorMax.ToString("F0") so M changes are visible.
         </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="O = M \times F \quad \text{where} \quad F = \prod_{i} f_i^{w_i} \qquad (1)" />
         <h4>In Plain Language</h4>
-        <p>Your productive output equals the LLM's amplification factor times the product of your capability components, each raised to its importance weight. The multiplicative form is decisive: if any critical component approaches zero, Force collapses toward zero regardless of how strong the others are.</p>
-        <h4>Reading the Chart</h4>
-        <p>The two axes sweep two force components while M and all other forces are held at their slider values. Drag any slider to see the color surface shift. Moving M scales the entire surface. Dragging a non-axis force component changes the baseline output. Changing weights reshapes the gradient contour.</p>
+        <p>O is your productive output. M is the LLM's amplification factor. F is your composite human capability, your Force. Each capability component f_i (domain expertise, architectural judgment, taste, clarity of specification, debugging intuition, calibrated uncertainty, intrinsic motivation) is raised to the power of its weight w_i, where w_i represents how much that component matters for the task at hand. The weights sum to 1, representing proportional importance. The mathematical consequence of this multiplicative form is decisive: if any critical component approaches zero, Force collapses toward zero regardless of how strong the others are. A brilliant architect with zero domain knowledge does not produce "slightly worse" output; the zero term drags the entire product down.</p>
+        <h4>Reading the Charts</h4>
+        <p>The heatmap sweeps two force components while M and all others are held at slider values. The red crosshair marks your current position on the surface. The radar chart beside it shows all 7 components at once as a polygon; a balanced profile fills the shape evenly, while a weakness shows as a visible dent. The color scale is fixed so that changing M produces visible color shifts, not just readout changes.</p>
         <h4>The Mirror</h4>
-        <p>You cannot place a question before the mirror that exhibits precision you don't possess. The reflection is faithful along the substance channel; it gives back what you brought, no more and no less.</p>
+        <p>You cannot place a question before the mirror that exhibits precision you don't possess. The reflection is faithful along the substance channel; it gives back what you brought, no more and no less. The senior engineer's precise question produced a precise reflection. The junior engineer's vague question produced a vague one. The mirror did not generate the difference. The Force did.</p>
         <h4>Connections</h4>
         <ul>
             <li>Layer hierarchy: <strong>Eq (1a)</strong></li>
@@ -60,13 +74,19 @@
                    XLabel="Component Value (fi)"
                    YLabel="Output (O)"
                    Series="@_sensitivitySeries"
-                   YMin="0" />
+                   YMin="0"
+                   Markers="@_sensitivityMarkers"
+                   HighlightSeriesIndices="@_sensitivityHighlight" />
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Dashed curves correspond to the heatmap axes.
+            Dots mark each component's current slider value.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Why This Matters</h4>
-        <p>Each curve shows how output responds to a single force component while all others stay fixed. Components with higher weights produce steeper curves. A component near zero drags the entire product down regardless of others.</p>
+        <p>Each curve shows how output responds to a single force component while all others stay fixed. Components with higher weights produce steeper curves. A component near zero drags the entire product down regardless of others, which is the Cobb-Douglas "one zero kills the product" property.</p>
         <h4>Reading the Chart</h4>
-        <p>Steeper curves indicate higher sensitivity. The vertical dots on each curve mark the current slider value. If curves are clustered, the weights are similar; if one is much steeper, that component dominates the output.</p>
+        <p>Steeper curves indicate higher sensitivity. The dots on each curve mark the current slider value: your "you are here" for all 7 components in one view. Dashed, thicker curves correspond to the two components currently displayed on the heatmap axes, linking the two charts visually. If curves are clustered, the weights are similar; if one is much steeper, that component dominates the output.</p>
     </TheoryContent>
 </ChartCard>
 
@@ -283,7 +303,12 @@
     private double[,] _heatMapData = new double[0, 0];
     private double[] _heatMapXValues = Array.Empty<double>();
     private double[] _heatMapYValues = Array.Empty<double>();
+    private double _heatColorMax = 50.0;
+    private List<string> _heatTooltipLines = new();
     private List<ChartSeries> _sensitivitySeries = new();
+    private List<ChartMarker> _sensitivityMarkers = new();
+    private HashSet<int> _sensitivityHighlight = new();
+    private List<RadarAxis> _radarAxes = new();
     private List<BarItem> _layerBars = new();
     private bool _layerValid;
     private List<BarStack> _domainStacks = new();
@@ -338,6 +363,7 @@
     {
         ComputeHeatMap();
         ComputeSensitivity();
+        ComputeRadarAxes();
         ComputeLayerBars();
         ComputeDomainBars();
         ComputeSkillValueSeries();
@@ -375,6 +401,25 @@
                 _heatMapData[r, c] = BaseModel.ComputeOutput(_m, testForces, weights);
             }
         }
+
+        // Fixed color scale: compute the theoretical max at M=5, all forces=10
+        // This makes M changes and force changes produce visible color shifts
+        var maxForces = new double[forces.Length];
+        Array.Fill(maxForces, 10.0);
+        _heatColorMax = BaseModel.ComputeOutput(Math.Max(_m, 5.0), maxForces, weights);
+
+        // Build tooltip lines for the crosshair
+        var currentO = ComputeCurrentOutput();
+        var currentF = ComputeCurrentForce();
+        _heatTooltipLines = new List<string>
+        {
+            $"Your current position",
+            $"{_componentLabels[_heatAxisX]} = {forces[_heatAxisX]:F1}",
+            $"{_componentLabels[axisY]} = {forces[axisY]:F1}",
+            $"M = {_m:F1}, F = {currentF:F2}",
+            $"Output O = {currentO:F2}",
+            $"Other 5 components held at sliders"
+        };
     }
 
     // ── Eq (1) Sensitivity: one line per force component ──
@@ -390,6 +435,9 @@
         const int pts = 50;
 
         _sensitivitySeries = new List<ChartSeries>();
+        _sensitivityMarkers = new List<ChartMarker>();
+        _sensitivityHighlight = new HashSet<int> { _heatAxisX, _heatAxisY };
+
         for (int comp = 0; comp < forces.Length; comp++)
         {
             var points = new List<DataPoint>();
@@ -402,6 +450,45 @@
                 points.Add(new DataPoint(fi, output));
             }
             _sensitivitySeries.Add(new ChartSeries(labels[comp], points, colors[comp], 2.0, false));
+
+            // Add a marker dot at the current slider value for this component
+            double currentFi = forces[comp];
+            double currentOutput = BaseModel.ComputeOutput(_m, forces, weights);
+            var isAxis = comp == _heatAxisX || comp == _heatAxisY;
+            var markerTooltip = new List<string>
+            {
+                $"{labels[comp]} (f{comp + 1})",
+                $"Value = {currentFi:F1}, Weight = {weights[comp]:F2}",
+                $"Output O = {currentOutput:F2}",
+                isAxis ? "Currently on heatmap axis" : "Held fixed on heatmap"
+            };
+            _sensitivityMarkers.Add(new ChartMarker(currentFi, currentOutput, colors[comp], Tooltip: markerTooltip));
+        }
+    }
+
+    // ── Eq (1) Radar: all 7 force components at a glance ──
+    private void ComputeRadarAxes()
+    {
+        var forces = GetForces();
+        var weights = GetWeights();
+        var shortLabels = new[] { "Domain", "Arch.", "Taste", "Spec", "Debug", "Uncert.", "Motiv." };
+        var fullLabels = new[] {
+            "Domain Expertise", "Arch. Judgment", "Taste",
+            "Spec Clarity", "Debug Intuition", "Calibrated Uncert.", "Intrinsic Motiv."
+        };
+        _radarAxes = new List<RadarAxis>();
+        for (int i = 0; i < forces.Length; i++)
+        {
+            var pct = (forces[i] / 10.0 * 100).ToString("F0");
+            var isAxis = i == _heatAxisX || i == _heatAxisY;
+            var tooltip = new List<string>
+            {
+                $"{fullLabels[i]} (f{i + 1})",
+                $"Value: {forces[i]:F1} / 10.0 ({pct}%)",
+                $"Weight: {weights[i]:F2}",
+                isAxis ? "Heatmap axis" : "Held fixed on heatmap"
+            };
+            _radarAxes.Add(new RadarAxis(shortLabels[i], forces[i], 10.0, tooltip));
         }
     }
 

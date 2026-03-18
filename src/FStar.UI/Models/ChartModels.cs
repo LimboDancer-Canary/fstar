@@ -24,3 +24,7 @@ public record TornadoFactor(string Label, double PositiveContribution, double Ne
 public record NumberLinePoint(double Value, string Color);
 
 public record AnimatedSeries(string Label, double[] Values, string Color);
+
+public record ChartMarker(double X, double Y, string Color, string? Label = null, IReadOnlyList<string>? Tooltip = null);
+
+public record RadarAxis(string Label, double Value, double Max = 10.0, IReadOnlyList<string>? Tooltip = null);

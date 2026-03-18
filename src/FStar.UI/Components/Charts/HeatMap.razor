@@ -9,6 +9,17 @@
      viewBox="0 0 @Width @Height"
      xmlns="http://www.w3.org/2000/svg">
 
+    <defs>
+        <filter id="tooltip-shadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15" />
+        </filter>
+    </defs>
+    <style>
+        .crosshair-tooltip { opacity: 0; pointer-events: none; transition: opacity 0.15s ease-in-out; }
+        .heatmap-crosshair-group:hover .crosshair-tooltip { opacity: 1; }
+        .crosshair-hit-area { cursor: pointer; }
+    </style>
+
     @if (Data is not null && Data.GetLength(0) > 0 && Data.GetLength(1) > 0)
     {
         var rows = Data.GetLength(0);
@@ -55,6 +66,69 @@
         }
     }
 
+    @* Crosshair at current slider values *@
+    @if (CrosshairX is not null && CrosshairY is not null
+         && XValues is not null && YValues is not null
+         && Data is not null && Data.GetLength(0) > 0 && Data.GetLength(1) > 0)
+    {
+        var chRows = Data.GetLength(0);
+        var chCols = Data.GetLength(1);
+        var chCellW = (double)PlotAreaWidth / chCols;
+        var chCellH = (double)PlotAreaHeight / chRows;
+
+        // Map value to pixel via linear interpolation within the axis range
+        var xMin = XValues[0];
+        var xMax = XValues[^1];
+        var yMin = YValues[0];
+        var yMax = YValues[^1];
+
+        var tx = (xMax > xMin) ? Math.Clamp((CrosshairX.Value - xMin) / (xMax - xMin), 0, 1) : 0.5;
+        var ty = (yMax > yMin) ? Math.Clamp((CrosshairY.Value - yMin) / (yMax - yMin), 0, 1) : 0.5;
+
+        var cx = MarginLeft + tx * PlotAreaWidth;
+        var cy = MarginTop + (1.0 - ty) * PlotAreaHeight; // invert Y since SVG y goes down
+
+        // Vertical crosshair line
+        <line x1="@F(cx)" y1="@F(MarginTop)" x2="@F(cx)" y2="@F(PlotBottom)"
+              stroke="#ff3333" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8" />
+        // Horizontal crosshair line
+        <line x1="@F(MarginLeft)" y1="@F(cy)" x2="@F(MarginLeft + PlotAreaWidth)" y2="@F(cy)"
+              stroke="#ff3333" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8" />
+        // Crosshair dot with hover tooltip
+        var tooltipW = 220.0;
+        var tooltipH = CrosshairTooltip is not null ? 16.0 + CrosshairTooltip.Count * 16.0 : 40.0;
+        var ttX = (tx > 0.5) ? cx - tooltipW - 12 : cx + 12;
+        var ttY = (ty < 0.5) ? cy - tooltipH - 12 : cy + 12;
+        // Clamp within plot area
+        ttX = Math.Max(MarginLeft, Math.Min(ttX, MarginLeft + PlotAreaWidth - tooltipW));
+        ttY = Math.Max(MarginTop, Math.Min(ttY, MarginTop + PlotAreaHeight - tooltipH));
+
+        <g class="heatmap-crosshair-group">
+            @* Invisible larger hit area for easier hover *@
+            <circle cx="@F(cx)" cy="@F(cy)" r="16" fill="transparent" class="crosshair-hit-area" />
+            @* Visible dot *@
+            <circle cx="@F(cx)" cy="@F(cy)" r="5" fill="#ff3333" stroke="white" stroke-width="2" />
+            @* Tooltip (shown on hover via CSS) *@
+            @if (CrosshairTooltip is not null && CrosshairTooltip.Count > 0)
+            {
+                <g class="crosshair-tooltip">
+                    <rect x="@F(ttX)" y="@F(ttY)" width="@F(tooltipW)" height="@F(tooltipH)"
+                          rx="6" ry="6"
+                          fill="var(--card-bg, #fff)" stroke="var(--border-color, #d1d5db)" stroke-width="1"
+                          filter="url(#tooltip-shadow)" />
+                    @for (int tl = 0; tl < CrosshairTooltip.Count; tl++)
+                    {
+                        var lineY = ttY + 14 + tl * 16.0;
+                        var isBold = tl == 0;
+                        var fontSize = isBold ? "12" : "11";
+                        var fontWeight = isBold ? "font-weight=\"bold\"" : "";
+                        @((MarkupString)$"<text x=\"{F(ttX + 10)}\" y=\"{F(lineY)}\" font-size=\"{fontSize}\" {fontWeight} fill=\"var(--text-primary, #333)\">{System.Net.WebUtility.HtmlEncode(CrosshairTooltip[tl])}</text>")
+                    }
+                </g>
+            }
+        </g>
+    }
+
     @* Axis labels *@
     @if (!string.IsNullOrEmpty(XLabel))
     {
@@ -77,6 +151,9 @@
     [Parameter] public double[]? YValues { get; set; }
     [Parameter] public double? ColorScaleMin { get; set; }
     [Parameter] public double? ColorScaleMax { get; set; }
+    [Parameter] public double? CrosshairX { get; set; }
+    [Parameter] public double? CrosshairY { get; set; }
+    [Parameter] public IReadOnlyList<string>? CrosshairTooltip { get; set; }
     [Parameter] public string LowColor { get; set; } = "#f0f9ff";
     [Parameter] public string HighColor { get; set; } = "#1e40af";
 

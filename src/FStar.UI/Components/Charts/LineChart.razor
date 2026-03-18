@@ -10,6 +10,16 @@
      viewBox="0 0 @Width @Height"
      xmlns="http://www.w3.org/2000/svg">
 
+    <defs>
+        <filter id="marker-tooltip-shadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15" />
+        </filter>
+    </defs>
+    <style>
+        .marker-tooltip { pointer-events: none; transition: opacity 0.15s ease-in-out; }
+        .marker-hit-area { cursor: pointer; }
+    </style>
+
     @* Axes *@
     <line x1="@MarginLeft" y1="@MarginTop" x2="@MarginLeft" y2="@PlotBottom"
           stroke="var(--text-secondary, #333)" stroke-width="1" />
@@ -65,10 +75,18 @@
     @* Series polylines and dots *@
     @if (Series is not null)
     {
+        var seriesIndex = 0;
         @foreach (var series in Series)
         {
             if (series.Points is null || series.Points.Count == 0)
+            {
+                seriesIndex++;
                 continue;
+            }
+
+            var isHighlighted = HighlightSeriesIndices?.Contains(seriesIndex) == true;
+            var effectiveWidth = isHighlighted ? Math.Max(series.StrokeWidth, 3.5) : series.StrokeWidth;
+            var dashAttr = isHighlighted ? "8,4" : (string?)null;
 
             if (series.Points.Count == 1)
             {
@@ -81,10 +99,21 @@
                 var pointsAttr = string.Join(" ",
                     series.Points.Select(p => $"{Fmt(ScaleX(p.X))},{Fmt(ScaleY(p.Y))}"));
 
-                <polyline points="@pointsAttr"
-                          fill="none"
-                          stroke="@series.Color"
-                          stroke-width="@series.StrokeWidth.ToString(CultureInfo.InvariantCulture)" />
+                @if (dashAttr is not null)
+                {
+                    <polyline points="@pointsAttr"
+                              fill="none"
+                              stroke="@series.Color"
+                              stroke-width="@effectiveWidth.ToString(CultureInfo.InvariantCulture)"
+                              stroke-dasharray="@dashAttr" />
+                }
+                else
+                {
+                    <polyline points="@pointsAttr"
+                              fill="none"
+                              stroke="@series.Color"
+                              stroke-width="@effectiveWidth.ToString(CultureInfo.InvariantCulture)" />
+                }
 
                 @if (series.ShowDots)
                 {
@@ -96,6 +125,67 @@
                     }
                 }
             }
+            seriesIndex++;
+        }
+    }
+
+    @* Markers pass 1: hit areas and dots (rendered first so tooltips paint on top) *@
+    @if (Markers is not null)
+    {
+        @for (int mi = 0; mi < Markers.Count; mi++)
+        {
+            var marker = Markers[mi];
+            var mx = ScaleX(marker.X);
+            var my = ScaleY(marker.Y);
+            var idx = mi;
+
+            @if (marker.Tooltip is not null && marker.Tooltip.Count > 0)
+            {
+                <circle cx="@Fmt(mx)" cy="@Fmt(my)" r="14" fill="transparent" class="marker-hit-area"
+                        @onmouseenter="() => _hoveredMarkerIndex = idx"
+                        @onmouseleave="() => _hoveredMarkerIndex = -1" />
+                <circle cx="@Fmt(mx)" cy="@Fmt(my)" r="6" fill="@marker.Color" stroke="white" stroke-width="2" />
+            }
+            else
+            {
+                <circle cx="@Fmt(mx)" cy="@Fmt(my)" r="6" fill="@marker.Color" stroke="white" stroke-width="2" />
+                @if (marker.Label is not null)
+                {
+                    @SvgText(mx + 10, my - 8, marker.Label, "start", 10, marker.Color)
+                }
+            }
+        }
+    }
+
+    @* Markers pass 2: tooltips rendered last for correct paint order *@
+    @if (Markers is not null && _hoveredMarkerIndex >= 0 && _hoveredMarkerIndex < Markers.Count)
+    {
+        var marker = Markers[_hoveredMarkerIndex];
+        @if (marker.Tooltip is not null && marker.Tooltip.Count > 0)
+        {
+            var mx = ScaleX(marker.X);
+            var my = ScaleY(marker.Y);
+            var mTtW = 200.0;
+            var mTtH = 12.0 + marker.Tooltip.Count * 16.0;
+            var mTx = (mx > MarginLeft + PlotWidth / 2) ? mx - mTtW - 12 : mx + 12;
+            var mTy = (my > MarginTop + PlotHeight / 2) ? my - mTtH - 12 : my + 12;
+            mTx = Math.Max(MarginLeft, Math.Min(mTx, PlotRight - mTtW));
+            mTy = Math.Max(MarginTop, Math.Min(mTy, PlotBottom - mTtH));
+
+            <g class="marker-tooltip" style="opacity: 1;">
+                <rect x="@Fmt(mTx)" y="@Fmt(mTy)" width="@Fmt(mTtW)" height="@Fmt(mTtH)"
+                      rx="6" ry="6"
+                      fill="var(--card-bg, #fff)" stroke="var(--border-color, #d1d5db)" stroke-width="1"
+                      filter="url(#marker-tooltip-shadow)" />
+                @for (int tl = 0; tl < marker.Tooltip.Count; tl++)
+                {
+                    var lineY = mTy + 14 + tl * 16.0;
+                    var isBold = tl == 0;
+                    var fontSize = isBold ? "12" : "11";
+                    var fontWeight = isBold ? "font-weight=\"bold\"" : "";
+                    @((MarkupString)$"<text x=\"{Fmt(mTx + 10)}\" y=\"{Fmt(lineY)}\" font-size=\"{fontSize}\" {fontWeight} fill=\"var(--text-primary, #333)\">{System.Net.WebUtility.HtmlEncode(marker.Tooltip[tl])}</text>")
+                }
+            </g>
         }
     }
 </svg>
@@ -111,6 +201,10 @@
     [Parameter] public double? YMin { get; set; }
     [Parameter] public double? YMax { get; set; }
     [Parameter] public bool ShowGrid { get; set; } = true;
+    [Parameter] public IReadOnlyList<ChartMarker>? Markers { get; set; }
+    [Parameter] public IReadOnlySet<int>? HighlightSeriesIndices { get; set; }
+
+    private int _hoveredMarkerIndex = -1;
 
     private const int MarginLeft = 60;
     private const int MarginRight = 20;
@@ -132,6 +226,7 @@
 
     protected override void OnParametersSet()
     {
+        _hoveredMarkerIndex = -1;
         ComputeBounds();
         ComputeTicks();
     }

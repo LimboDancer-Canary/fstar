@@ -1,0 +1,150 @@
+@using FStar.UI.Models
+@using System.Globalization
+
+<svg class="radar-chart"
+     role="img"
+     aria-label="Force profile radar chart"
+     width="@Width"
+     height="@Height"
+     viewBox="0 0 @Width @Height"
+     xmlns="http://www.w3.org/2000/svg">
+
+    <defs>
+        <filter id="radar-tooltip-shadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15" />
+        </filter>
+    </defs>
+    <style>
+        .radar-tooltip { pointer-events: none; transition: opacity 0.15s ease-in-out; }
+        .radar-hit-area { cursor: pointer; }
+    </style>
+
+    @if (Axes is not null && Axes.Count >= 3)
+    {
+        var cx = Width / 2.0;
+        var cy = Height / 2.0;
+        var radius = Math.Min(Width, Height) / 2.0 - 40;
+        var n = Axes.Count;
+
+        @* Concentric ring gridlines *@
+        @for (int ring = 1; ring <= GridRings; ring++)
+        {
+            var r = radius * ring / GridRings;
+            <circle cx="@F(cx)" cy="@F(cy)" r="@F(r)"
+                    fill="none" stroke="var(--border-color, #d1d5db)" stroke-width="0.5" />
+        }
+
+        @* Spoke lines and labels *@
+        @for (int i = 0; i < n; i++)
+        {
+            var angle = -Math.PI / 2.0 + 2.0 * Math.PI * i / n;
+            var sx = cx + radius * Math.Cos(angle);
+            var sy = cy + radius * Math.Sin(angle);
+            var lx = cx + (radius + 16) * Math.Cos(angle);
+            var ly = cy + (radius + 16) * Math.Sin(angle);
+
+            <line x1="@F(cx)" y1="@F(cy)" x2="@F(sx)" y2="@F(sy)"
+                  stroke="var(--border-color, #d1d5db)" stroke-width="0.5" />
+
+            var anchor = Math.Abs(Math.Cos(angle)) < 0.1 ? "middle"
+                       : Math.Cos(angle) > 0 ? "start" : "end";
+
+            @SvgText(Axes[i].Label, lx, ly + 4, anchor, "11")
+        }
+
+        @* Value polygon *@
+        var polyPoints = new List<string>();
+        @for (int i = 0; i < n; i++)
+        {
+            var angle = -Math.PI / 2.0 + 2.0 * Math.PI * i / n;
+            var t = Math.Clamp(Axes[i].Value / Axes[i].Max, 0, 1);
+            var px = cx + radius * t * Math.Cos(angle);
+            var py = cy + radius * t * Math.Sin(angle);
+            polyPoints.Add($"{F(px)},{F(py)}");
+        }
+
+        <polygon points="@string.Join(" ", polyPoints)"
+                 fill="@FillColor" fill-opacity="0.25"
+                 stroke="@StrokeColor" stroke-width="2" />
+
+        @* Vertex pass 1: hit areas and dots *@
+        @for (int i = 0; i < n; i++)
+        {
+            var angle = -Math.PI / 2.0 + 2.0 * Math.PI * i / n;
+            var t = Math.Clamp(Axes[i].Value / Axes[i].Max, 0, 1);
+            var px = cx + radius * t * Math.Cos(angle);
+            var py = cy + radius * t * Math.Sin(angle);
+            var idx = i;
+
+            @if (Axes[i].Tooltip is not null && Axes[i].Tooltip!.Count > 0)
+            {
+                <circle cx="@F(px)" cy="@F(py)" r="12" fill="transparent" class="radar-hit-area"
+                        @onmouseenter="() => _hoveredVertexIndex = idx"
+                        @onmouseleave="() => _hoveredVertexIndex = -1" />
+            }
+            <circle cx="@F(px)" cy="@F(py)" r="4" fill="@StrokeColor" stroke="white" stroke-width="1.5" />
+        }
+
+        @* Center value label *@
+        @if (!string.IsNullOrEmpty(CenterLabel))
+        {
+            @SvgText(CenterLabel, cx, cy + 4, "middle", "12")
+        }
+
+        @* Vertex pass 2: tooltip rendered last for correct paint order *@
+        @if (_hoveredVertexIndex >= 0 && _hoveredVertexIndex < n)
+        {
+            var hi = _hoveredVertexIndex;
+            var hAngle = -Math.PI / 2.0 + 2.0 * Math.PI * hi / n;
+            var hT = Math.Clamp(Axes[hi].Value / Axes[hi].Max, 0, 1);
+            var hPx = cx + radius * hT * Math.Cos(hAngle);
+            var hPy = cy + radius * hT * Math.Sin(hAngle);
+
+            @if (Axes[hi].Tooltip is not null && Axes[hi].Tooltip!.Count > 0)
+            {
+                var ttLines = Axes[hi].Tooltip!;
+                var ttW = 190.0;
+                var ttH = 12.0 + ttLines.Count * 15.0;
+                var ttX = (hPx > cx) ? hPx - ttW - 10 : hPx + 10;
+                var ttY = (hPy > cy) ? hPy - ttH - 10 : hPy + 10;
+                ttX = Math.Max(2, Math.Min(ttX, Width - ttW - 2));
+                ttY = Math.Max(2, Math.Min(ttY, Height - ttH - 2));
+
+                <g class="radar-tooltip" style="opacity: 1;">
+                    <rect x="@F(ttX)" y="@F(ttY)" width="@F(ttW)" height="@F(ttH)"
+                          rx="5" ry="5"
+                          fill="var(--card-bg, #fff)" stroke="var(--border-color, #d1d5db)" stroke-width="1"
+                          filter="url(#radar-tooltip-shadow)" />
+                    @for (int tl = 0; tl < ttLines.Count; tl++)
+                    {
+                        var lineY = ttY + 13 + tl * 15.0;
+                        var isBold = tl == 0;
+                        var fontSize = isBold ? "11" : "10";
+                        var fontWeight = isBold ? "font-weight=\"bold\"" : "";
+                        @((MarkupString)$"<text x=\"{F(ttX + 8)}\" y=\"{F(lineY)}\" font-size=\"{fontSize}\" {fontWeight} fill=\"var(--text-primary, #333)\">{System.Net.WebUtility.HtmlEncode(ttLines[tl])}</text>")
+                    }
+                </g>
+            }
+        }
+    }
+</svg>
+
+@code {
+    [Parameter] public int Width { get; set; } = 280;
+    [Parameter] public int Height { get; set; } = 280;
+    [Parameter] public IReadOnlyList<RadarAxis>? Axes { get; set; }
+    [Parameter] public string FillColor { get; set; } = "#2563eb";
+    [Parameter] public string StrokeColor { get; set; } = "#1e40af";
+    [Parameter] public string? CenterLabel { get; set; }
+    [Parameter] public int GridRings { get; set; } = 4;
+
+    private int _hoveredVertexIndex = -1;
+
+    private string F(double v) => v.ToString("F2", CultureInfo.InvariantCulture);
+
+    private static MarkupString SvgText(string content, double x, double y, string anchor = "middle", string fontSize = "12")
+    {
+        var encoded = System.Net.WebUtility.HtmlEncode(content);
+        return (MarkupString)$"<text x=\"{x.ToString("F2", CultureInfo.InvariantCulture)}\" y=\"{y.ToString("F2", CultureInfo.InvariantCulture)}\" text-anchor=\"{anchor}\" font-size=\"{fontSize}\" fill=\"var(--text-primary, #333)\">{encoded}</text>";
+    }
+}
