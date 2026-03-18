@@ -44,6 +44,39 @@ namespace FStarEquationsTests
             Assert.Equal(expected, actual, 10);
         }
 
+        // --- OutputVarianceCorrelated tests ---
+
+        [Fact]
+        public void OutputVarianceCorrelated_ZeroRho_EqualsOutputVariance()
+        {
+            // rho=0 => M^2 * Var(F) * (1 + 0) = M^2 * Var(F)
+            double expected = VarianceAmplification.OutputVariance(3.0, 2.0);
+
+            double actual = VarianceAmplification.OutputVarianceCorrelated(3.0, 2.0, 0.0);
+
+            Assert.Equal(expected, actual, 10);
+        }
+
+        [Theory]
+        [InlineData(3.0, 2.0, 0.5, 45.0)]   // 9 * 2 * (1 + 0.5*3) = 18 * 2.5 = 45.0
+        [InlineData(2.0, 1.0, 1.0, 12.0)]    // 4 * 1 * (1 + 1*2) = 4 * 3 = 12
+        [InlineData(5.0, 0.04, 0.5, 3.5)]    // 25 * 0.04 * (1 + 0.5*5) = 1.0 * 3.5 = 3.5
+        public void OutputVarianceCorrelated_PositiveRho_ExceedsBaseline(double m, double varF, double rho, double expected)
+        {
+            double actual = VarianceAmplification.OutputVarianceCorrelated(m, varF, rho);
+
+            Assert.Equal(expected, actual, 10);
+        }
+
+        [Fact]
+        public void OutputVarianceCorrelated_PositiveRho_GreaterThanUncorrelated()
+        {
+            double baseline = VarianceAmplification.OutputVariance(3.0, 2.0);
+            double correlated = VarianceAmplification.OutputVarianceCorrelated(3.0, 2.0, 0.5);
+
+            Assert.True(correlated > baseline, "Correlated variance should exceed baseline when rho > 0");
+        }
+
         // --- AbsoluteOutputGap tests ---
 
         [Fact]
