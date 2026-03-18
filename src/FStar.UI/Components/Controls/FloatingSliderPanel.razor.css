@@ -96,3 +96,43 @@
 ::deep .slider-group-header:first-child {
     margin-top: 0;
 }
+
+/* Scroll-aware slider slots: animate show/hide */
+::deep .slider-slot {
+    max-height: 80px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+}
+
+::deep .slider-slot.hidden {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* Context label showing which chart is active */
+::deep .slider-context-label {
+    font-size: 0.7rem;
+    color: var(--text-muted, #9ca3af);
+    padding: 0.25rem 0 0.125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Show All toggle */
+::deep .slider-show-all-toggle {
+    font-size: 0.7rem;
+    color: var(--accent, #2563eb);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.125rem 0;
+    text-decoration: underline;
+}
+
+::deep .slider-show-all-toggle:hover {
+    color: var(--text-primary, #1f2937);
+}

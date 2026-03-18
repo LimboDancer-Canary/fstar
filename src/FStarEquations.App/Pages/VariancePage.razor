@@ -1,4 +1,6 @@
 @page "/variance"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <PageTitle>The Variance Amplifier / Barbell Effect — Eq (4), (4a), (5), (6)</PageTitle>
 
@@ -14,6 +16,7 @@
 @* Chart 1: Variance Amplification — HeatMap (Eq 4) + Radar               *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="variance-chart-0">
 <ChartCard Title="Variance Amplification" Description="Eq (4) Var(O) = M² · Var(F) as a surface over M and Var(F).">
     <ChildContent>
         <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
@@ -81,11 +84,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Chart 2: Output Gap — Eq (5)                                           *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="variance-chart-1">
 <ChartCard Title="Output Gap" Description="Eq (5) ΔO = M · (F_H − F_L) as M varies.">
     <ChildContent>
         <LineChart Series="@_gapSeries"
@@ -128,11 +133,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Chart 3: Market Value Piecewise — Eq (6) + Barbell Radar               *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="variance-chart-2">
 <ChartCard Title="Market Value Piecewise" Description="Eq (6) Three-tier market value as force varies.">
     <ChildContent>
         <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
@@ -193,11 +200,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Chart 4: Output Gap Divergence — Composite (Eq 4 + 4a + 5)             *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="variance-chart-3">
 <ChartCard Title="Output Gap Divergence" Description="Composite: Eq (4), Eq (4a) with correlation, and Eq (5) as M varies.">
     <ChildContent>
         <LineChart Series="@_divergenceSeries"
@@ -244,11 +253,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Chart 5: Barbell + Variance — Composite (Eq 6 + M·F)                   *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="variance-chart-4">
 <ChartCard Title="Barbell + Variance" Description="Composite: Eq (6) Market Value and M·F amplification as force varies.">
     <ChildContent>
         <LineChart Series="@_barbellSeries"
@@ -293,50 +304,97 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Slider Panel                                                            *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
 <FloatingSliderPanel Visible="true" Title="Variance Parameters" DefaultY="100">
-    <div class="slider-group-header">Multiplier &amp; Variance</div>
-    <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1"
-                     Value="@_m"
-                     ValueChanged="@OnMChanged" />
-    <ParameterSlider Label="Var(F)" Min="0.1" Max="10" Step="0.1"
-                     Value="@_varianceF"
-                     ValueChanged="@OnVarianceFChanged" />
-    <ParameterSlider Label="ρ (M-F correlation)" Min="0" Max="1" Step="0.01"
-                     Value="@_rho"
-                     ValueChanged="@OnRhoChanged" />
+    <div class="slider-context-label">
+        @if (_showAllSliders)
+        {
+            <span>Showing all sliders</span>
+        }
+        else if (_activeChartIndex >= 0 && _activeChartIndex < ChartNames.Length)
+        {
+            <span>Sliders for: @ChartNames[_activeChartIndex]</span>
+        }
+        &ensp;
+        <button class="slider-show-all-toggle" @onclick="ToggleShowAll">
+            @(_showAllSliders ? "Auto-filter" : "Show all")
+        </button>
+    </div>
 
-    <div class="slider-group-header">Force Distribution</div>
-    <ParameterSlider Label="F_high" Min="1" Max="20" Step="0.5"
-                     Value="@_forceHigh"
-                     ValueChanged="@OnForceHighChanged" />
-    <ParameterSlider Label="F_low" Min="0" Max="10" Step="0.5"
-                     Value="@_forceLow"
-                     ValueChanged="@OnForceLowChanged" />
-    <ParameterSlider Label="Current F" Min="0" Max="10" Step="0.1"
-                     Value="@_currentF"
-                     ValueChanged="@OnCurrentFChanged" />
+    @if (IsGroupVisible(0))
+    {
+        <div class="slider-group-header">Multiplier &amp; Variance</div>
+    }
+    <div class="slider-slot @SlotClass("m")">
+        <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1"
+                         Value="@_m"
+                         ValueChanged="@OnMChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("varF")">
+        <ParameterSlider Label="Var(F)" Min="0.1" Max="10" Step="0.1"
+                         Value="@_varianceF"
+                         ValueChanged="@OnVarianceFChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("rho")">
+        <ParameterSlider Label="ρ (M-F correlation)" Min="0" Max="1" Step="0.01"
+                         Value="@_rho"
+                         ValueChanged="@OnRhoChanged" />
+    </div>
 
-    <div class="slider-group-header">Market Structure (Eq 6)</div>
-    <ParameterSlider Label="Threshold Low" Min="0" Max="5" Step="0.1"
-                     Value="@_thresholdLow"
-                     ValueChanged="@OnThresholdLowChanged" />
-    <ParameterSlider Label="Threshold High" Min="5" Max="10" Step="0.1"
-                     Value="@_thresholdHigh"
-                     ValueChanged="@OnThresholdHighChanged" />
-    <ParameterSlider Label="Premium High" Min="1" Max="100" Step="1"
-                     Value="@_premiumHigh"
-                     ValueChanged="@OnPremiumHighChanged" />
-    <ParameterSlider Label="Wage Mid" Min="1" Max="50" Step="1"
-                     Value="@_wageMid"
-                     ValueChanged="@OnWageMidChanged" />
-    <ParameterSlider Label="Floor Low" Min="0" Max="20" Step="1"
-                     Value="@_floorLow"
-                     ValueChanged="@OnFloorLowChanged" />
+    @if (IsGroupVisible(1))
+    {
+        <div class="slider-group-header">Force Distribution</div>
+    }
+    <div class="slider-slot @SlotClass("fHigh")">
+        <ParameterSlider Label="F_high" Min="1" Max="20" Step="0.5"
+                         Value="@_forceHigh"
+                         ValueChanged="@OnForceHighChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("fLow")">
+        <ParameterSlider Label="F_low" Min="0" Max="10" Step="0.5"
+                         Value="@_forceLow"
+                         ValueChanged="@OnForceLowChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("currentF")">
+        <ParameterSlider Label="Current F" Min="0" Max="10" Step="0.1"
+                         Value="@_currentF"
+                         ValueChanged="@OnCurrentFChanged" />
+    </div>
+
+    @if (IsGroupVisible(2))
+    {
+        <div class="slider-group-header">Market Structure (Eq 6)</div>
+    }
+    <div class="slider-slot @SlotClass("thLow")">
+        <ParameterSlider Label="Threshold Low" Min="0" Max="5" Step="0.1"
+                         Value="@_thresholdLow"
+                         ValueChanged="@OnThresholdLowChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("thHigh")">
+        <ParameterSlider Label="Threshold High" Min="5" Max="10" Step="0.1"
+                         Value="@_thresholdHigh"
+                         ValueChanged="@OnThresholdHighChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("prem")">
+        <ParameterSlider Label="Premium High" Min="1" Max="100" Step="1"
+                         Value="@_premiumHigh"
+                         ValueChanged="@OnPremiumHighChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("wage")">
+        <ParameterSlider Label="Wage Mid" Min="1" Max="50" Step="1"
+                         Value="@_wageMid"
+                         ValueChanged="@OnWageMidChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("floor")">
+        <ParameterSlider Label="Floor Low" Min="0" Max="20" Step="1"
+                         Value="@_floorLow"
+                         ValueChanged="@OnFloorLowChanged" />
+    </div>
 </FloatingSliderPanel>
 
 @code {
@@ -352,6 +410,65 @@
     private double _premiumHigh = 50.0;
     private double _wageMid = 25.0;
     private double _floorLow = 10.0;
+
+    // ── Scroll-aware slider state ──
+    private int _activeChartIndex = 0;
+    private bool _showAllSliders;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<VariancePage>? _dotNetRef;
+
+    private static readonly string[] ChartNames =
+    {
+        "Variance Amplification",
+        "Output Gap",
+        "Market Value Piecewise",
+        "Output Gap Divergence",
+        "Barbell + Variance"
+    };
+
+    // Per-chart: which slider keys are relevant
+    private static readonly HashSet<string>[] ChartSliderKeys =
+    {
+        new() { "m", "varF", "rho", "fHigh", "fLow" },
+        new() { "m", "fHigh", "fLow" },
+        new() { "m", "currentF", "thLow", "thHigh", "prem", "wage", "floor" },
+        new() { "m", "varF", "rho", "fHigh", "fLow" },
+        new() { "m", "currentF", "thLow", "thHigh", "prem", "wage", "floor" },
+    };
+
+    // Group 0 keys, Group 1 keys, Group 2 keys
+    private static readonly string[][] GroupKeys =
+    {
+        new[] { "m", "varF", "rho" },
+        new[] { "fHigh", "fLow", "currentF" },
+        new[] { "thLow", "thHigh", "prem", "wage", "floor" },
+    };
+
+    private bool IsSliderVisible(string key) =>
+        _showAllSliders ||
+        (_activeChartIndex >= 0 && _activeChartIndex < ChartSliderKeys.Length &&
+         ChartSliderKeys[_activeChartIndex].Contains(key));
+
+    private bool IsGroupVisible(int group) =>
+        _showAllSliders || GroupKeys[group].Any(IsSliderVisible);
+
+    private string SlotClass(string key) => IsSliderVisible(key) ? "" : "hidden";
+
+    private void ToggleShowAll() => _showAllSliders = !_showAllSliders;
+
+    private static readonly string[] ChartElementIds =
+    {
+        "variance-chart-0", "variance-chart-1", "variance-chart-2",
+        "variance-chart-3", "variance-chart-4"
+    };
+
+    [JSInvokable]
+    public void OnChartScrolled(int index)
+    {
+        if (index == _activeChartIndex) return;
+        _activeChartIndex = index;
+        InvokeAsync(StateHasChanged);
+    }
 
     // ── HeatMap data (Eq 4) ──
     private double[,] _heatData = new double[0, 0];
@@ -384,6 +501,36 @@
 
     // ── Lifecycle ──
     protected override void OnInitialized() => Recalculate();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _jsModule.InvokeVoidAsync(
+                    "initChartObserver", _dotNetRef, "OnChartScrolled", ChartElementIds);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("destroyChartObserver");
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
+    }
 
     // ── Readout helpers ──
     private double ComputeVarO() => VarianceAmplification.OutputVariance(_m, _varianceF);

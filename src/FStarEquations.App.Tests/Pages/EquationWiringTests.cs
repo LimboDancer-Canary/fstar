@@ -9,6 +9,7 @@ public class EquationWiringTests : BunitContext
     [Fact]
     public void VariancePage_DefaultSliders_ShowsCorrectVariance()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         // Default: M varies 0.5-5, Var(F)=2. OutputVariance(1, 2) = 1*1*2 = 2
         // The page renders LineChart with polyline elements for the variance series
         var cut = Render<VariancePage>();
@@ -20,6 +21,7 @@ public class EquationWiringTests : BunitContext
     [Fact]
     public void VariancePage_Renders_ContainsDivergenceComposite()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<VariancePage>();
 
         // The divergence composite chart (Eq 4+4a+5) should render 3 polylines
@@ -30,6 +32,7 @@ public class EquationWiringTests : BunitContext
     [Fact]
     public void VariancePage_Renders_ContainsBarbellComposite()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<VariancePage>();
 
         // The page should contain text referencing the barbell composite

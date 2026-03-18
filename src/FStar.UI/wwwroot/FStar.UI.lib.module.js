@@ -101,6 +101,53 @@ export function destroyDraggable(elementId) {
     delete dragState[elementId];
 }
 
+// Chart scroll observer – reports which chart section is most visible
+let chartObserverState = {};
+
+export function initChartObserver(dotNetRef, methodName, elementIds) {
+    destroyChartObserver();
+
+    const ratios = {};
+    elementIds.forEach(id => { ratios[id] = 0; });
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            ratios[entry.target.id] = entry.intersectionRatio;
+        });
+
+        // Pick the element with the greatest visible ratio
+        let bestId = null;
+        let bestRatio = 0;
+        for (const id of elementIds) {
+            if (ratios[id] > bestRatio) {
+                bestRatio = ratios[id];
+                bestId = id;
+            }
+        }
+
+        const index = bestId ? elementIds.indexOf(bestId) : -1;
+        if (index >= 0 && bestRatio > 0.05) {
+            dotNetRef.invokeMethodAsync(methodName, index);
+        }
+    }, {
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0]
+    });
+
+    elementIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+    });
+
+    chartObserverState = { observer, dotNetRef };
+}
+
+export function destroyChartObserver() {
+    if (chartObserverState.observer) {
+        chartObserverState.observer.disconnect();
+        chartObserverState = {};
+    }
+}
+
 let animationFrameIds = {};
 
 export function startAnimationLoop(canvasId, dotNetRef, methodName) {

@@ -9,6 +9,7 @@ public class SliderInteractionTests : BunitContext
     [Fact]
     public void VariancePage_HasFloatingSliderPill()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<VariancePage>();
         var pill = cut.Find(".floating-slider-pill");
         Assert.Contains("Variance", pill.TextContent);
@@ -22,7 +23,7 @@ public class SliderInteractionTests : BunitContext
         cut.Find(".floating-slider-pill").Click();
         var sliders = cut.FindAll("input[type=range]");
         Assert.NotEmpty(sliders);
-        Assert.Equal("0.1", sliders[0].GetAttribute("min"));
+        Assert.Equal("0.5", sliders[0].GetAttribute("min"));
     }
 
     [Fact]

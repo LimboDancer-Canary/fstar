@@ -32,6 +32,7 @@ public class PageRenderTests : BunitContext
     [Fact]
     public void VariancePage_Renders_WithoutThrowing()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<VariancePage>();
         Assert.NotNull(cut.Find("h1"));
     }
