@@ -25,6 +25,7 @@ public class PageRenderTests : BunitContext
     [Fact]
     public void BaseModelPage_Renders_WithoutThrowing()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<BaseModelPage>();
         Assert.NotNull(cut.Find("h1"));
     }

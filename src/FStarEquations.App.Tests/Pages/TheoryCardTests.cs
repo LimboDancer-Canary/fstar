@@ -18,6 +18,7 @@ public class TheoryCardTests : BunitContext
     [Fact]
     public void BaseModelPage_ChartCards_HaveTheoryTabs()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<BaseModelPage>();
 
         var tabBars = cut.FindAll(".chart-card-tabs");

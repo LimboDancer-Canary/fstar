@@ -43,6 +43,7 @@ public class EquationWiringTests : BunitContext
     [Fact]
     public void BaseModelPage_Renders_ContainsHeatMap()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<BaseModelPage>();
 
         var heatMapSvg = cut.Find("svg.heat-map");

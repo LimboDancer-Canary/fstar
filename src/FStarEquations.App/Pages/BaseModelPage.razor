@@ -1,4 +1,6 @@
 @page "/base-model"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <PageTitle>Force is Not a Number — Eq (1), (1a), (2), (3)</PageTitle>
 
@@ -12,6 +14,7 @@
 @* Eq (1): Cobb-Douglas Output — HeatMap                                  *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="base-model-chart-0">
 <ChartCard Title="Cobb-Douglas Output Surface"
            Description="Eq (1): O = M * product(fi^wi). Axes show two force components; M and all other forces held at slider values. Move any slider to see the surface shift.">
     <ChildContent>
@@ -62,11 +65,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Eq (1): Force Component Sensitivity                                    *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="base-model-chart-1">
 <ChartCard Title="Force Component Sensitivity"
            Description="Eq (1): How output changes as each force component varies, holding all others at their slider values.">
     <ChildContent>
@@ -89,11 +94,13 @@
         <p>Steeper curves indicate higher sensitivity. The dots on each curve mark the current slider value: your "you are here" for all 7 components in one view. Dashed, thicker curves correspond to the two components currently displayed on the heatmap axes, linking the two charts visually. If curves are clustered, the weights are similar; if one is much steeper, that component dominates the output.</p>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Eq (1a): Layer Effective Multiplier                                    *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="base-model-chart-2">
 <ChartCard Title="Layer Effective Multiplier"
            Description="Eq (1a): M_eff by layer. The LLM substitutes almost fully at the surface, partially in the middle, and barely at depth.">
     <ChildContent>
@@ -115,11 +122,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Eq (2): Variable Multiplier Across Domains                            *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="base-model-chart-3">
 <ChartCard Title="Variable Multiplier Across Domains"
            Description="Eq (2): O = sum(Ms(d) * F(d)). Total output is the sum of domain-specific contributions.">
     <ChildContent>
@@ -142,11 +151,13 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Eq (3): Skill Value Sensitivity                                        *@
 @* ──────────────────────────────────────────────────────────────────────── *@
 
+<div id="base-model-chart-4">
 <ChartCard Title="Skill Value Sensitivity by Domain"
            Description="Eq (3): dVs/dIp = (dMs(d)/dIp) * F_bar_s. Each curve shows how provider investment changes a domain's skill value, shaped by both the multiplier improvement rate and the average Force in that domain.">
     <ChildContent>
@@ -178,6 +189,7 @@
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
 @* ──────────────────────────────────────────────────────────────────────── *@
 @* Slider Panel                                                           *@
@@ -185,61 +197,260 @@
 
 <FloatingSliderPanel Visible="true" Title="Base Model Parameters" DefaultY="100">
 
-    <div class="slider-group-header">Eq (1): Heatmap Axes</div>
-    <ParameterSlider Label="X-axis component (1-7)" Min="1" Max="7" Step="1" Value="@(_heatAxisX + 1)" ValueChanged="v => { _heatAxisX = (int)v - 1; Recalculate(); }" />
-    <ParameterSlider Label="Y-axis component (1-7)" Min="1" Max="7" Step="1" Value="@(_heatAxisY + 1)" ValueChanged="v => { _heatAxisY = (int)v - 1; Recalculate(); }" />
+    <div class="slider-context-label">
+        @if (_showAllSliders)
+        {
+            <span>Showing all sliders</span>
+        }
+        else if (_activeChartIndex >= 0 && _activeChartIndex < BaseChartNames.Length)
+        {
+            <span>Sliders for: @BaseChartNames[_activeChartIndex]</span>
+        }
+        &ensp;
+        <button class="slider-show-all-toggle" @onclick="ToggleShowAll">
+            @(_showAllSliders ? "Auto-filter" : "Show all")
+        </button>
+    </div>
 
-    <div class="slider-group-header">Eq (1): Force Components</div>
-    <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1" Value="@_m" ValueChanged="OnMChanged" />
-    <ParameterSlider Label="f1: Domain Expertise" Min="0" Max="10" Step="0.1" Value="@_f1" ValueChanged="v => { _f1 = v; Recalculate(); }" />
-    <ParameterSlider Label="f2: Arch. Judgment" Min="0" Max="10" Step="0.1" Value="@_f2" ValueChanged="v => { _f2 = v; Recalculate(); }" />
-    <ParameterSlider Label="f3: Taste" Min="0" Max="10" Step="0.1" Value="@_f3" ValueChanged="v => { _f3 = v; Recalculate(); }" />
-    <ParameterSlider Label="f4: Spec Clarity" Min="0" Max="10" Step="0.1" Value="@_f4" ValueChanged="v => { _f4 = v; Recalculate(); }" />
-    <ParameterSlider Label="f5: Debug Intuition" Min="0" Max="10" Step="0.1" Value="@_f5" ValueChanged="v => { _f5 = v; Recalculate(); }" />
-    <ParameterSlider Label="f6: Calibrated Uncert." Min="0" Max="10" Step="0.1" Value="@_f6" ValueChanged="v => { _f6 = v; Recalculate(); }" />
-    <ParameterSlider Label="f7: Intrinsic Motiv." Min="0" Max="10" Step="0.1" Value="@_f7" ValueChanged="v => { _f7 = v; Recalculate(); }" />
+    @* Group 0: Heatmap Axes *@
+    @if (IsGroupVisible(0))
+    {
+        <div class="slider-group-header">Eq (1): Heatmap Axes</div>
+    }
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="X-axis component (1-7)" Min="1" Max="7" Step="1" Value="@(_heatAxisX + 1)" ValueChanged="v => { _heatAxisX = (int)v - 1; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="Y-axis component (1-7)" Min="1" Max="7" Step="1" Value="@(_heatAxisY + 1)" ValueChanged="v => { _heatAxisY = (int)v - 1; Recalculate(); }" />
+    </div>
 
-    <div class="slider-group-header">Eq (1): Weights (sum to 1)</div>
-    <ParameterSlider Label="w1: Domain Expertise" Min="0.01" Max="0.5" Step="0.01" Value="@_w1" ValueChanged="v => { _w1 = v; NormalizeWeights(0); }" />
-    <ParameterSlider Label="w2: Arch. Judgment" Min="0.01" Max="0.5" Step="0.01" Value="@_w2" ValueChanged="v => { _w2 = v; NormalizeWeights(1); }" />
-    <ParameterSlider Label="w3: Taste" Min="0.01" Max="0.5" Step="0.01" Value="@_w3" ValueChanged="v => { _w3 = v; NormalizeWeights(2); }" />
-    <ParameterSlider Label="w4: Spec Clarity" Min="0.01" Max="0.5" Step="0.01" Value="@_w4" ValueChanged="v => { _w4 = v; NormalizeWeights(3); }" />
-    <ParameterSlider Label="w5: Debug Intuition" Min="0.01" Max="0.5" Step="0.01" Value="@_w5" ValueChanged="v => { _w5 = v; NormalizeWeights(4); }" />
-    <ParameterSlider Label="w6: Calibrated Uncert." Min="0.01" Max="0.5" Step="0.01" Value="@_w6" ValueChanged="v => { _w6 = v; NormalizeWeights(5); }" />
-    <ParameterSlider Label="w7: Intrinsic Motiv." Min="0.01" Max="0.5" Step="0.01" Value="@_w7" ValueChanged="v => { _w7 = v; NormalizeWeights(6); }" />
+    @* Group 1: Force Components *@
+    @if (IsGroupVisible(1))
+    {
+        <div class="slider-group-header">Eq (1): Force Components</div>
+    }
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1" Value="@_m" ValueChanged="OnMChanged" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f1: Domain Expertise" Min="0" Max="10" Step="0.1" Value="@_f1" ValueChanged="v => { _f1 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f2: Arch. Judgment" Min="0" Max="10" Step="0.1" Value="@_f2" ValueChanged="v => { _f2 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f3: Taste" Min="0" Max="10" Step="0.1" Value="@_f3" ValueChanged="v => { _f3 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f4: Spec Clarity" Min="0" Max="10" Step="0.1" Value="@_f4" ValueChanged="v => { _f4 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f5: Debug Intuition" Min="0" Max="10" Step="0.1" Value="@_f5" ValueChanged="v => { _f5 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f6: Calibrated Uncert." Min="0" Max="10" Step="0.1" Value="@_f6" ValueChanged="v => { _f6 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="f7: Intrinsic Motiv." Min="0" Max="10" Step="0.1" Value="@_f7" ValueChanged="v => { _f7 = v; Recalculate(); }" />
+    </div>
 
-    <div class="slider-group-header">Eq (1a): Layer Effective Multipliers</div>
-    <ParameterSlider Label="M_eff Surface" Min="1" Max="50" Step="0.5" Value="@_mEffSurface" ValueChanged="v => { _mEffSurface = v; Recalculate(); }" />
-    <ParameterSlider Label="M_eff Middle" Min="1" Max="10" Step="0.1" Value="@_mEffMiddle" ValueChanged="v => { _mEffMiddle = v; Recalculate(); }" />
-    <ParameterSlider Label="M_eff Deep" Min="0.5" Max="3" Step="0.1" Value="@_mEffDeep" ValueChanged="v => { _mEffDeep = v; Recalculate(); }" />
-    <ParameterSlider Label="Force (Surface)" Min="0" Max="10" Step="0.1" Value="@_forceSurface" ValueChanged="v => { _forceSurface = v; Recalculate(); }" />
-    <ParameterSlider Label="Force (Middle)" Min="0" Max="10" Step="0.1" Value="@_forceMiddle" ValueChanged="v => { _forceMiddle = v; Recalculate(); }" />
-    <ParameterSlider Label="Force (Deep)" Min="0" Max="10" Step="0.1" Value="@_forceDeep" ValueChanged="v => { _forceDeep = v; Recalculate(); }" />
+    @* Group 2: Weights *@
+    @if (IsGroupVisible(2))
+    {
+        <div class="slider-group-header">Eq (1): Weights (sum to 1)</div>
+    }
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w1: Domain Expertise" Min="0.01" Max="0.5" Step="0.01" Value="@_w1" ValueChanged="v => { _w1 = v; NormalizeWeights(0); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w2: Arch. Judgment" Min="0.01" Max="0.5" Step="0.01" Value="@_w2" ValueChanged="v => { _w2 = v; NormalizeWeights(1); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w3: Taste" Min="0.01" Max="0.5" Step="0.01" Value="@_w3" ValueChanged="v => { _w3 = v; NormalizeWeights(2); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w4: Spec Clarity" Min="0.01" Max="0.5" Step="0.01" Value="@_w4" ValueChanged="v => { _w4 = v; NormalizeWeights(3); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w5: Debug Intuition" Min="0.01" Max="0.5" Step="0.01" Value="@_w5" ValueChanged="v => { _w5 = v; NormalizeWeights(4); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w6: Calibrated Uncert." Min="0.01" Max="0.5" Step="0.01" Value="@_w6" ValueChanged="v => { _w6 = v; NormalizeWeights(5); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="w7: Intrinsic Motiv." Min="0.01" Max="0.5" Step="0.01" Value="@_w7" ValueChanged="v => { _w7 = v; NormalizeWeights(6); }" />
+    </div>
 
-    <div class="slider-group-header">Eq (2): Domain Multipliers</div>
-    <ParameterSlider Label="Ms: Boilerplate" Min="0.5" Max="50" Step="0.5" Value="@_msBoilerplate" ValueChanged="v => { _msBoilerplate = v; Recalculate(); }" />
-    <ParameterSlider Label="Ms: Integration" Min="0.5" Max="20" Step="0.5" Value="@_msIntegration" ValueChanged="v => { _msIntegration = v; Recalculate(); }" />
-    <ParameterSlider Label="Ms: Architecture" Min="0.5" Max="5" Step="0.1" Value="@_msArchitecture" ValueChanged="v => { _msArchitecture = v; Recalculate(); }" />
-    <ParameterSlider Label="Ms: Debugging" Min="0.1" Max="3" Step="0.1" Value="@_msDebugging" ValueChanged="v => { _msDebugging = v; Recalculate(); }" />
-    <ParameterSlider Label="F: Boilerplate" Min="0" Max="10" Step="0.1" Value="@_fdBoilerplate" ValueChanged="v => { _fdBoilerplate = v; Recalculate(); }" />
-    <ParameterSlider Label="F: Integration" Min="0" Max="10" Step="0.1" Value="@_fdIntegration" ValueChanged="v => { _fdIntegration = v; Recalculate(); }" />
-    <ParameterSlider Label="F: Architecture" Min="0" Max="10" Step="0.1" Value="@_fdArchitecture" ValueChanged="v => { _fdArchitecture = v; Recalculate(); }" />
-    <ParameterSlider Label="F: Debugging" Min="0" Max="10" Step="0.1" Value="@_fdDebugging" ValueChanged="v => { _fdDebugging = v; Recalculate(); }" />
+    @* Group 3: Layer Effective Multipliers *@
+    @if (IsGroupVisible(3))
+    {
+        <div class="slider-group-header">Eq (1a): Layer Effective Multipliers</div>
+    }
+    <div class="slider-slot @GroupSlotClass(3)">
+        <ParameterSlider Label="M_eff Surface" Min="1" Max="50" Step="0.5" Value="@_mEffSurface" ValueChanged="v => { _mEffSurface = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(3)">
+        <ParameterSlider Label="M_eff Middle" Min="1" Max="10" Step="0.1" Value="@_mEffMiddle" ValueChanged="v => { _mEffMiddle = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(3)">
+        <ParameterSlider Label="M_eff Deep" Min="0.5" Max="3" Step="0.1" Value="@_mEffDeep" ValueChanged="v => { _mEffDeep = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(3)">
+        <ParameterSlider Label="Force (Surface)" Min="0" Max="10" Step="0.1" Value="@_forceSurface" ValueChanged="v => { _forceSurface = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(3)">
+        <ParameterSlider Label="Force (Middle)" Min="0" Max="10" Step="0.1" Value="@_forceMiddle" ValueChanged="v => { _forceMiddle = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(3)">
+        <ParameterSlider Label="Force (Deep)" Min="0" Max="10" Step="0.1" Value="@_forceDeep" ValueChanged="v => { _forceDeep = v; Recalculate(); }" />
+    </div>
 
-    <div class="slider-group-header">Eq (3): Skill Value Sensitivity</div>
-    <ParameterSlider Label="Ip (current investment)" Min="0.1" Max="10" Step="0.1" Value="@_currentIp" ValueChanged="v => { _currentIp = v; Recalculate(); }" />
-    <ParameterSlider Label="dMs/dIp: Boilerplate" Min="0.1" Max="10" Step="0.1" Value="@_dMsBoilerplate" ValueChanged="v => { _dMsBoilerplate = v; Recalculate(); }" />
-    <ParameterSlider Label="dMs/dIp: Integration" Min="0.1" Max="10" Step="0.1" Value="@_dMsIntegration" ValueChanged="v => { _dMsIntegration = v; Recalculate(); }" />
-    <ParameterSlider Label="dMs/dIp: Architecture" Min="0.1" Max="10" Step="0.1" Value="@_dMsArchitecture" ValueChanged="v => { _dMsArchitecture = v; Recalculate(); }" />
-    <ParameterSlider Label="dMs/dIp: Debugging" Min="0.1" Max="10" Step="0.1" Value="@_dMsDebugging" ValueChanged="v => { _dMsDebugging = v; Recalculate(); }" />
-    <ParameterSlider Label="F_bar: Boilerplate" Min="0.5" Max="10" Step="0.1" Value="@_fBarBoilerplate" ValueChanged="v => { _fBarBoilerplate = v; Recalculate(); }" />
-    <ParameterSlider Label="F_bar: Integration" Min="0.5" Max="10" Step="0.1" Value="@_fBarIntegration" ValueChanged="v => { _fBarIntegration = v; Recalculate(); }" />
-    <ParameterSlider Label="F_bar: Architecture" Min="0.5" Max="10" Step="0.1" Value="@_fBarArchitecture" ValueChanged="v => { _fBarArchitecture = v; Recalculate(); }" />
-    <ParameterSlider Label="F_bar: Debugging" Min="0.5" Max="10" Step="0.1" Value="@_fBarDebugging" ValueChanged="v => { _fBarDebugging = v; Recalculate(); }" />
+    @* Group 4: Domain Multipliers *@
+    @if (IsGroupVisible(4))
+    {
+        <div class="slider-group-header">Eq (2): Domain Multipliers</div>
+    }
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="Ms: Boilerplate" Min="0.5" Max="50" Step="0.5" Value="@_msBoilerplate" ValueChanged="v => { _msBoilerplate = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="Ms: Integration" Min="0.5" Max="20" Step="0.5" Value="@_msIntegration" ValueChanged="v => { _msIntegration = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="Ms: Architecture" Min="0.5" Max="5" Step="0.1" Value="@_msArchitecture" ValueChanged="v => { _msArchitecture = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="Ms: Debugging" Min="0.1" Max="3" Step="0.1" Value="@_msDebugging" ValueChanged="v => { _msDebugging = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="F: Boilerplate" Min="0" Max="10" Step="0.1" Value="@_fdBoilerplate" ValueChanged="v => { _fdBoilerplate = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="F: Integration" Min="0" Max="10" Step="0.1" Value="@_fdIntegration" ValueChanged="v => { _fdIntegration = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="F: Architecture" Min="0" Max="10" Step="0.1" Value="@_fdArchitecture" ValueChanged="v => { _fdArchitecture = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(4)">
+        <ParameterSlider Label="F: Debugging" Min="0" Max="10" Step="0.1" Value="@_fdDebugging" ValueChanged="v => { _fdDebugging = v; Recalculate(); }" />
+    </div>
+
+    @* Group 5: Skill Value Sensitivity *@
+    @if (IsGroupVisible(5))
+    {
+        <div class="slider-group-header">Eq (3): Skill Value Sensitivity</div>
+    }
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="Ip (current investment)" Min="0.1" Max="10" Step="0.1" Value="@_currentIp" ValueChanged="v => { _currentIp = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="dMs/dIp: Boilerplate" Min="0.1" Max="10" Step="0.1" Value="@_dMsBoilerplate" ValueChanged="v => { _dMsBoilerplate = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="dMs/dIp: Integration" Min="0.1" Max="10" Step="0.1" Value="@_dMsIntegration" ValueChanged="v => { _dMsIntegration = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="dMs/dIp: Architecture" Min="0.1" Max="10" Step="0.1" Value="@_dMsArchitecture" ValueChanged="v => { _dMsArchitecture = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="dMs/dIp: Debugging" Min="0.1" Max="10" Step="0.1" Value="@_dMsDebugging" ValueChanged="v => { _dMsDebugging = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="F_bar: Boilerplate" Min="0.5" Max="10" Step="0.1" Value="@_fBarBoilerplate" ValueChanged="v => { _fBarBoilerplate = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="F_bar: Integration" Min="0.5" Max="10" Step="0.1" Value="@_fBarIntegration" ValueChanged="v => { _fBarIntegration = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="F_bar: Architecture" Min="0.5" Max="10" Step="0.1" Value="@_fBarArchitecture" ValueChanged="v => { _fBarArchitecture = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(5)">
+        <ParameterSlider Label="F_bar: Debugging" Min="0.5" Max="10" Step="0.1" Value="@_fBarDebugging" ValueChanged="v => { _fBarDebugging = v; Recalculate(); }" />
+    </div>
 
 </FloatingSliderPanel>
 
 @code {
+    // ── Scroll-aware slider state ──
+    private int _activeChartIndex = 0;
+    private bool _showAllSliders;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<BaseModelPage>? _dotNetRef;
+
+    private static readonly string[] BaseChartNames =
+    {
+        "Cobb-Douglas Surface",
+        "Component Sensitivity",
+        "Layer Multiplier",
+        "Domain Multipliers",
+        "Skill Value Sensitivity"
+    };
+
+    // Per-chart: which slider groups (indices) are visible
+    // Group 0 = Heatmap Axes, 1 = Force Components, 2 = Weights,
+    // 3 = Layer M_eff, 4 = Domain, 5 = Skill Value
+    private static readonly HashSet<int>[] ChartVisibleGroups =
+    {
+        new() { 0, 1, 2 }, // Chart 0: HeatMap
+        new() { 0, 1, 2 }, // Chart 1: Sensitivity
+        new() { 3 },       // Chart 2: Layer
+        new() { 4 },       // Chart 3: Domain
+        new() { 5 },       // Chart 4: Skill Value
+    };
+
+    private bool IsGroupVisible(int groupIndex) =>
+        _showAllSliders ||
+        (_activeChartIndex >= 0 && _activeChartIndex < ChartVisibleGroups.Length &&
+         ChartVisibleGroups[_activeChartIndex].Contains(groupIndex));
+
+    private string GroupSlotClass(int groupIndex) => IsGroupVisible(groupIndex) ? "" : "hidden";
+
+    private void ToggleShowAll() => _showAllSliders = !_showAllSliders;
+
+    private static readonly string[] ChartElementIds =
+    {
+        "base-model-chart-0", "base-model-chart-1", "base-model-chart-2",
+        "base-model-chart-3", "base-model-chart-4"
+    };
+
+    [JSInvokable]
+    public void OnChartScrolled(int index)
+    {
+        if (index == _activeChartIndex) return;
+        _activeChartIndex = index;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _jsModule.InvokeVoidAsync(
+                    "initChartObserver", _dotNetRef, "OnChartScrolled", ChartElementIds);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("destroyChartObserver");
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
+    }
+
     // ── Eq (1): Base output parameters ──
     private double _m = 2.0;
 
