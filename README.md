@@ -19,6 +19,12 @@ Key equations implemented include the Cobb-Douglas force model (Eq 1), the atrop
 
 The framework generates specific, testable predictions. This repo is where those predictions meet data.
 
-Built as a companion to the article. Intended as a tool for anyone — engineering leaders, educators, policymakers — trying to navigate the force dynamics of an LLM-augmented world.
+## Links
+
+- [Live App](https://limbodancer-canary.github.io/fstar/)
+- [The Multiplier and the Mirror](https://limbodancer-canary.github.io/fstar/docs/The_Multiplier_and_the_Mirror.html) (rendered article)
+- [Citations](https://limbodancer-canary.github.io/fstar/docs/The_Multiplier_and_the_Mirror_Citations.html)
+
+Built as a companion to the article. Intended as a tool for anyone, from engineering leaders to educators to policymakers, trying to navigate the force dynamics of an LLM-augmented world.
 
 *Build the force. The multiplication takes care of itself.*
