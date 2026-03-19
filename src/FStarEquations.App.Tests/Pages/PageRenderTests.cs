@@ -113,6 +113,7 @@ public class PageRenderTests : BunitContext
     [Fact]
     public void TransferPage_Renders_WithoutThrowing()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<TransferPage>();
         Assert.NotNull(cut.Find("h1"));
     }

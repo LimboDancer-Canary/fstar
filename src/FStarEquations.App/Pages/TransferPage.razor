@@ -1,4 +1,6 @@
-﻿@page "/transfer"
+@page "/transfer"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <PageTitle>F to M Transfer — Eq (26)-(31)</PageTitle>
 
@@ -8,332 +10,604 @@
     The transfer from human force to model capability is not lossless. Surface knowledge transfers almost perfectly; deep expertise barely transfers at all. The absorption ceiling, the data quality spiral, and the rising tipping point are all consequences of this asymmetric extraction.
 </blockquote>
 
-@* ─── Chart 1: Transfer Rate Bars — Eq (26) ─── *@
-<ChartCard Title="Transfer Rate — Eq (26)"
-           Description="dM_abs/dt = Σ(ηᵢ · Fᵢ) · τ_extract for different τ_extract values.">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 0: Transfer Rate HeatMap + Radar — Eq (26)                       *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-0">
+<ChartCard Title="Transfer Rate Surface — Eq (26)"
+           Description="dM_abs/dt = Σ(ηᵢ · Fᵢ) · τ_extract. Heatmap sweeps F_surface vs F_deep; all other parameters held at slider values.">
     <ChildContent>
-    <BarChart Bars="@_transferRateBars" XLabel="τ_extract" YLabel="Transfer Rate" Width="500" Height="320" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <HeatMap Width="600" Height="400"
+                     XLabel="F_surface"
+                     YLabel="F_deep"
+                     Data="@_transferHeatData"
+                     XValues="@_transferHeatXValues"
+                     YValues="@_transferHeatYValues"
+                     CrosshairX="@_forceSurface"
+                     CrosshairY="@_forceDeep"
+                     CrosshairTooltip="@_transferHeatTooltip"
+                     ColorScaleMin="0"
+                     ColorScaleMax="@_transferHeatColorMax" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Layer Contribution Profile</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_transferRadarAxes"
+                            CenterLabel="@($"Rate={ComputeCurrentTransferRate():F1}")" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Current transfer rate: <strong>dM/dt = @ComputeCurrentTransferRate().ToString("F2")</strong>
+            &ensp;|&ensp;&tau;=@_tauExtract.ToString("F2")
+            &ensp;|&ensp;&Sigma;(&eta;&middot;F)=@ComputeWeightedSum().ToString("F2")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Heatmap axes: F_surface vs F_deep. &eta; values and F_middle held at sliders.
+            Color scale fixed at 0 to @_transferHeatColorMax.ToString("F0").
+            Radar shows each layer's contribution: &eta;&#x1D62; &middot; F&#x1D62;.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\frac{dM_{\text{absorbed}}}{dt} = \sum_i \eta_i \cdot f_{i,\text{high}} \cdot \tau_{\text{extract}} \qquad (26)" />
         <h4>In Plain Language</h4>
-        <p>Every time a senior engineer's code review preferences train a code-review model, every time an expert's evaluation judgments become RLHF signal — force is flowing from F into M. The rate is the sum across all force layers of (how transferable that layer is) × (expert's force in that layer) × (time spent on extraction). The mirror isn't just reflecting. It's recording.</p>
+        <p>Every time a senior engineer's code review preferences train a code-review model, every time an expert's evaluation judgments become RLHF signal, force is flowing from F into M. The rate is the sum across all force layers of (how transferable that layer is) times (expert's force in that layer) times (time spent on extraction). The mirror is not just reflecting. It is recording.</p>
+        <h4>Reading the Charts</h4>
+        <p>The heatmap sweeps F_surface (x-axis) and F_deep (y-axis) while holding all other parameters at slider values. Notice how F_surface dominates: moving right produces steep color change because surface transfer efficiency is high. Moving up (increasing F_deep) barely shifts the color because deep transfer efficiency is near zero. The red crosshair marks your current position. The radar chart shows each layer's contribution to the total transfer rate; surface will typically dominate, making the radar polygon lopsided.</p>
+        <h4>The Mirror</h4>
+        <p>The mirror is not just reflecting. It is recording. And what it records most faithfully is what was most legible to begin with: the surface layer. The deep layer, the contextual judgment that makes the surface knowledge meaningful, barely registers in the transfer. The asymmetry between what transfers easily and what matters most is the central tension of this section.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Transfer efficiency → <strong>Eq (26a)</strong></li>
-            <li>Absorption ceiling → <strong>Eq (27)</strong></li>
-            <li>Three-way competition → <strong>Eq (28)</strong></li>
+            <li>Transfer efficiency: <strong>Eq (26a)</strong></li>
+            <li>Absorption ceiling: <strong>Eq (27)</strong></li>
+            <li>Three-way competition: <strong>Eq (28)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Chart 2: Transfer Efficiency Validation — Eq (26a) ─── *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 1: Transfer Rate Sensitivity — Eq (26)                           *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-1">
+<ChartCard Title="Transfer Rate Sensitivity — Eq (26)"
+           Description="How each parameter (3 η, 3 F, τ) affects the total transfer rate, holding all others at slider values.">
+    <ChildContent>
+        <LineChart Width="600" Height="400"
+                   XLabel="Parameter Value"
+                   YLabel="Transfer Rate (dM/dt)"
+                   Series="@_transferSensitivitySeries"
+                   YMin="0"
+                   Markers="@_transferSensitivityMarkers"
+                   HighlightSeriesIndices="@_transferSensitivityHighlight" />
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Dashed curves correspond to the heatmap axes (F_surface, F_deep).
+            Dots mark each parameter's current slider value.
+        </p>
+    </ChildContent>
+    <TheoryContent>
+        <h4>Why This Matters</h4>
+        <p>Each curve shows how the total transfer rate responds to varying a single parameter while all others stay fixed. The steepness of a curve reveals that parameter's leverage over the transfer process. Parameters with high transfer efficiency (surface) produce steep curves; parameters where transfer efficiency is near zero (deep) produce nearly flat curves.</p>
+        <h4>Reading the Chart</h4>
+        <p>Steeper curves indicate higher sensitivity. The dots on each curve mark the current slider value. Dashed, thicker curves correspond to the two parameters shown on the heatmap axes (F_surface and F_deep), linking the two charts visually. The gap between steep and flat curves quantifies the asymmetry in transfer efficiency.</p>
+    </TheoryContent>
+</ChartCard>
+</div>
+
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 2: Transfer Efficiency Validation — Eq (26a)                     *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-2">
 <ChartCard Title="Transfer Efficiency Validation — Eq (26a)"
            Description="η_surf ∈ [0.9,1.0], η_mid ∈ [0.3,0.6], η_deep ∈ [0.0,0.1]">
     <ChildContent>
-    <ThresholdIndicator Label="@_validationLabel" Passed="@_efficiencyValid" />
+        <ThresholdIndicator Label="@_validationLabel" Passed="@_efficiencyValid" />
+        <p class="chart-readout">
+            &eta;_surface=@_etaSurface.ToString("F2") (@(_etaSurface >= 0.9 && _etaSurface <= 1.0 ? "in range" : "out of range"))
+            &ensp;|&ensp;&eta;_middle=@_etaMiddle.ToString("F2") (@(_etaMiddle >= 0.3 && _etaMiddle <= 0.6 ? "in range" : "out of range"))
+            &ensp;|&ensp;&eta;_deep=@_etaDeep.ToString("F2") (@(_etaDeep >= 0.0 && _etaDeep <= 0.1 ? "in range" : "out of range"))
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Valid ranges reflect empirical transfer rates: surface transfers almost fully, middle partially, deep barely at all.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\eta_{\text{surface}} \approx 1, \quad \eta_{\text{middle}} \approx 0.3\text{-}0.6, \quad \eta_{\text{deep}} \approx 0 \qquad (26a)" />
         <h4>In Plain Language</h4>
-        <p>The surface layer transfers almost completely — standard patterns, API behaviors, common failure modes. The middle layer transfers partially — the model can learn some evaluative patterns and preferences. The deep layer barely transfers at all — contextual judgment, the sense of when rules don't apply, taste in genuine ambiguity. This knowledge is relational and situational in ways that resist encoding.</p>
+        <p>The surface layer transfers almost completely: standard patterns, API behaviors, common failure modes. The middle layer transfers partially: the model can learn some evaluative patterns and preferences. The deep layer barely transfers at all: contextual judgment, the sense of when rules do not apply, taste in genuine ambiguity. This knowledge is relational and situational in ways that resist encoding.</p>
+        <h4>The Mirror</h4>
+        <p>The mirror's fidelity at the surface conceals its limitations at depth. The transfer captures what was least durable anyway (surface) and leaves behind what was most irreplaceable (deep).</p>
         <h4>Connections</h4>
         <ul>
-            <li>Layer hierarchy → <strong>Eq (1a)</strong></li>
-            <li>Transfer rate → <strong>Eq (26)</strong></li>
-            <li>Absorption ceiling → <strong>Eq (27)</strong></li>
+            <li>Layer hierarchy: <strong>Eq (1a)</strong></li>
+            <li>Transfer rate: <strong>Eq (26)</strong></li>
+            <li>Absorption ceiling: <strong>Eq (27)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Chart 2b: Knowledge Preservation — Eq (29) ─── *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 3: Knowledge Preservation — Eq (29)                              *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-3">
 <ChartCard Title="Knowledge Preservation — Eq (29)"
            Description="K_tacit ≠ K_model: tacit knowledge is not fully captured by the model.">
     <ChildContent>
-    <ThresholdIndicator Label="@_knowledgePreservedLabel" Passed="@_knowledgePreserved" />
+        <BarChart Bars="@_knowledgeBars" XLabel="Knowledge Type" YLabel="Amount" Width="500" Height="320" />
+        <ThresholdIndicator Label="@_knowledgePreservedLabel" Passed="@_knowledgePreserved" />
+        <p class="chart-readout">
+            Gap: K_tacit - K_model = <strong>@((_kTacit - _kModel).ToString("F1"))</strong>
+            &ensp;|&ensp;This is the untransferable residual.
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Bars show K_tacit (what the expert knows) vs K_model (what was captured). The gap is the bus factor illusion.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="K_{\text{tacit}} \neq K_{\text{model}} \qquad (29)" />
         <h4>In Plain Language</h4>
-        <p>What's in the model is K_explicit — the articulable, documentable portion of the expert's knowledge. What's in the tacit stock is K_tacit — the contextual, relational, situational judgment that resists encoding. These are different knowledge types, not different amounts of the same type. The transfer doesn't reduce &#x03B4; (the decay rate in Eq 12) — it only creates the illusion that K_tacit no longer needs active transmission. Before the transfer, the organization knew it had a bus factor problem. After the transfer, it believes it has solved it. It has solved only the legible portion.</p>
+        <p>What is in the model is K_explicit: the articulable, documentable portion of the expert's knowledge. What is in the tacit stock is K_tacit: the contextual, relational, situational judgment that resists encoding. These are different knowledge types, not different amounts of the same type. The transfer does not reduce the decay rate; it only creates the illusion that K_tacit no longer needs active transmission. Before the transfer, the organization knew it had a bus factor problem. After the transfer, it believes it has solved it. It has solved only the legible portion.</p>
+        <h4>Reading the Charts</h4>
+        <p>The bar chart shows the two knowledge quantities side by side. When K_tacit exceeds K_model (the typical case), the gap represents knowledge that exists only in human heads and cannot be extracted by any transfer process. The threshold indicator confirms the inequality.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Tacit knowledge → <strong>Eq (12)</strong></li>
-            <li>Transfer ceiling → <strong>Eq (27)</strong></li>
-            <li>Pipeline break → <strong>Eq (13)</strong></li>
+            <li>Tacit knowledge: <strong>Eq (12)</strong></li>
+            <li>Transfer ceiling: <strong>Eq (27)</strong></li>
+            <li>Pipeline break: <strong>Eq (13)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Chart 3: Absorption Ceiling Bars — Eq (27) ─── *@
-<ChartCard Title="Absorption Ceiling — Eq (27)"
-           Description="lim M_abs = M₀ + Σ(ηᵢ · Fᵢ_explicit) for different M₀ values.">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 4: Absorption Ceiling HeatMap + Radar — Eq (27)                  *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-4">
+<ChartCard Title="Absorption Ceiling Surface — Eq (27)"
+           Description="lim M_abs = M₀ + Σ(ηᵢ · Fᵢ_explicit). Heatmap sweeps M₀ vs F_surface; other parameters held at sliders.">
     <ChildContent>
-    <BarChart Bars="@_absorptionBars" XLabel="M₀" YLabel="Absorption Ceiling" Width="500" Height="320" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <HeatMap Width="600" Height="400"
+                     XLabel="M₀ (initial model)"
+                     YLabel="F_surface"
+                     Data="@_absHeatData"
+                     XValues="@_absHeatXValues"
+                     YValues="@_absHeatYValues"
+                     CrosshairX="@_m0Absorption"
+                     CrosshairY="@_forceSurface"
+                     CrosshairTooltip="@_absHeatTooltip"
+                     ColorScaleMin="0"
+                     ColorScaleMax="@_absHeatColorMax" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Ceiling Breakdown</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_absRadarAxes"
+                            CenterLabel="@($"Ceil={ComputeCurrentCeiling():F1}")" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Absorption ceiling: <strong>@ComputeCurrentCeiling().ToString("F2")</strong>
+            &ensp;|&ensp;M&#8320;=@_m0Absorption.ToString("F1")
+            &ensp;|&ensp;&Sigma;(&eta;&middot;F)=@ComputeWeightedSum().ToString("F2")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Heatmap axes: M&#8320; vs F_surface. Color scale fixed at 0 to @_absHeatColorMax.ToString("F0").
+            The radar shows each layer's ceiling contribution: &eta;&#x1D62; &middot; F&#x1D62;.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\lim_{t \to \infty} M_{\text{absorbed}} = M_0 + \sum_i \eta_i \cdot f_{i,\text{explicit}} \qquad (27)" />
         <h4>In Plain Language</h4>
-        <p>No matter how long the transfer runs, the model converges to a maximum that includes all the explicit, articulable knowledge — and none of the tacit residual. The model absorbs what experts can articulate. It cannot absorb what they cannot. The transfer captures what was least durable anyway (surface) and leaves behind what was most irreplaceable (deep).</p>
+        <p>No matter how long the transfer runs, the model converges to a maximum that includes all the explicit, articulable knowledge, and none of the tacit residual. The model absorbs what experts can articulate. It cannot absorb what they cannot. The transfer captures what was least durable anyway (surface) and leaves behind what was most irreplaceable (deep).</p>
+        <h4>Reading the Charts</h4>
+        <p>The heatmap sweeps the initial model capability (M_0) on the x-axis and the surface force on the y-axis. Moving right raises the baseline; moving up increases the largest transferable component. The radar shows the breakdown: surface (large wedge), middle (moderate), deep (tiny or absent). The lopsidedness of the radar quantifies how much of the expert's knowledge is captured versus lost.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Transfer efficiency → <strong>Eq (26a)</strong></li>
-            <li>Bus factor illusion → <strong>Eq (29)</strong></li>
-            <li>Tacit knowledge → <strong>Eq (12)</strong></li>
+            <li>Transfer efficiency: <strong>Eq (26a)</strong></li>
+            <li>Bus factor illusion: <strong>Eq (29)</strong></li>
+            <li>Tacit knowledge: <strong>Eq (12)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Composite 1: Time Allocation Trade-off — Eq (28) + (7a) ─── *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 5: Time Allocation Trade-off — Eq (28) + (7a)                    *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-5">
 <ChartCard Title="Time Allocation Trade-off — Eq (28) + (7a)"
            Description="Bar breakdown of τ_create, τ_eval, τ_extract and total time (Eq 28), with reallocated force at varying fractionToEval (Eq 7a).">
     <ChildContent>
-    <BarChart Bars="@_timeAllocationBars" XLabel="Component" YLabel="Value" Width="500" Height="320" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <BarChart Bars="@_timeAllocationBars" XLabel="Component" YLabel="Value" Width="500" Height="320" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Time Split</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_timeRadarAxes"
+                            CenterLabel="@($"Total={ComputeTotalTime():F1}")" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Total time: <strong>&tau; = @ComputeTotalTime().ToString("F1")</strong>
+            &ensp;|&ensp;Create: @_tauCreate.ToString("F1")
+            &ensp;|&ensp;Evaluate: @_tauEval.ToString("F1")
+            &ensp;|&ensp;Extract: @_tauExtract.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Bars show time components and reallocated force at different evaluation fractions.
+            The radar shows the three-way time split at a glance; a balanced polygon is ideal.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\tau_{\text{available}} = \tau_{\text{create}} + \tau_{\text{evaluate}} + \tau_{\text{extract}} \qquad (28)" />
         <h4>In Plain Language</h4>
         <p>The total working time of a high-force individual is now split three ways: building (where the multiplier on their output is highest), reviewing others' LLM-augmented work (bottleneck-clearing), and teaching the model (RLHF, knowledge systems). Every hour spent on one is an hour not spent on the others. No slack.</p>
+        <h4>Reading the Charts</h4>
+        <p>The bar chart breaks down the three time components plus the total. The additional bars show reallocated force at different evaluation fractions (Eq 7a). The radar chart shows the three-way split as a polygon; a highly asymmetric shape reveals an imbalanced allocation. A triangle that fills the radar evenly represents equal investment in all three activities.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Evaluation bottleneck → <strong>Eq (7)</strong></li>
-            <li>Reallocation → <strong>Eq (7a)</strong></li>
-            <li>Transfer rate → <strong>Eq (26)</strong></li>
+            <li>Evaluation bottleneck: <strong>Eq (7)</strong></li>
+            <li>Reallocation: <strong>Eq (7a)</strong></li>
+            <li>Transfer rate: <strong>Eq (26)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Composite 2: Data Quality Spiral — Eq (31) + (25) ─── *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 6: Data Quality Spiral — Eq (31) + (25)                         *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-6">
 <ChartCard Title="Data Quality Spiral — Eq (31) + (25)"
            Description="Model quality evolution over 20 iterations (Eq 31) overlaid with multiplier growth M(t) (Eq 25).">
     <ChildContent>
-    <LineChart Series="@_qualitySpiralSeries" XLabel="Iteration" YLabel="Value" Width="500" Height="320" />
+        <LineChart Series="@_qualitySpiralSeries" XLabel="Iteration" YLabel="Value"
+                   Width="600" Height="400"
+                   Markers="@_qualitySpiralMarkers"
+                   HighlightSeriesIndices="@_qualitySpiralHighlight" />
+        <p class="chart-readout">
+            At t=20: Quality = <strong>@_qualityAtEnd.ToString("F2")</strong>
+            &ensp;|&ensp;M(20) = <strong>@_multiplierAtEnd.ToString("F2")</strong>
+            &ensp;|&ensp;Q&#8320;=@_qualityCurrent.ToString("F1")
+            &ensp;|&ensp;F_avg=@_avgForceAnnotators.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Blue: model quality over training iterations. Red: multiplier growth M(t) = M&#8320; &middot; e^(&mu;t).
+            Dots mark the endpoint values. If F_avg is declining, quality improvement decelerates.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\text{Quality}(M_{t+1}) = g\!\left(\text{Quality}(M_t),\; \bar{F}_{\text{annotators}}(t)\right) \qquad (31)" />
         <h4>In Plain Language</h4>
-        <p>The next generation of the model is only as good as the current generation plus the quality of human judgment feeding its training pipeline. If the average force of the people generating training signal is declining — as Eqs (15b) and (16) predict — then model quality improvement decelerates or reverses. The mirror's fidelity degrades because the human signal has been hollowed out. This is the strongest argument for why M(t) may not grow exponentially.</p>
+        <p>The next generation of the model is only as good as the current generation plus the quality of human judgment feeding its training pipeline. If the average force of the people generating training signal is declining, as Eqs (15b) and (16) predict, then model quality improvement decelerates or reverses. The mirror's fidelity degrades because the human signal has been hollowed out. This is the strongest argument for why M(t) may not grow exponentially.</p>
+        <h4>Reading the Charts</h4>
+        <p>The blue curve (quality) should climb if annotator force is adequate. The red curve (multiplier) grows exponentially regardless. When annotator force is low, the quality curve flattens while the multiplier keeps climbing, creating a gap between what the model promises and what it can deliver. The markers at the end show the final state; drag F_avg downward to see quality stall.</p>
+        <h4>The Mirror</h4>
+        <p>The worst outcome: a workforce that has atrophied in reliance on a strong M, combined with an M that is no longer strong. The mirror's quality degrades not because of a flaw in training methodology, but because the human signal that the methodology depends on has been hollowed out.</p>
         <h4>Connections</h4>
         <ul>
-            <li>M growth → <strong>Eq (25)</strong></li>
-            <li>Force atrophy → <strong>Eq (11)</strong></li>
-            <li>Diverging trajectories → <strong>Eq (15b)</strong></li>
+            <li>M growth: <strong>Eq (25)</strong></li>
+            <li>Force atrophy: <strong>Eq (11)</strong></li>
+            <li>Diverging trajectories: <strong>Eq (15b)</strong></li>
             <li>Terminal dynamics</li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Composite 3: Tipping Point Shift — Eq (30) + (14) ─── *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 7: Tipping Point Shift — Eq (30) + (14)                         *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="transfer-chart-7">
 <ChartCard Title="Tipping Point Shift — Eq (30) + (14)"
            Description="F* before and after model transfer. Threshold at F*_pre; indicator shows whether F*_post > F*_pre (Eq 30).">
     <ChildContent>
-    <NumberLine Width="600" Height="100"
-                Min="0" Max="@_tpNumberLineMax"
-                Threshold="@_fStarPre"
-                Points="@_tippingPointShiftPoints" />
-    <ThresholdIndicator Label="@_tippingShiftLabel" Passed="@_hasTippingPointRisen" />
+        <NumberLine Width="600" Height="100"
+                    Min="0" Max="@_tpNumberLineMax"
+                    Threshold="@_fStarPre"
+                    Points="@_tippingPointShiftPoints" />
+        <ThresholdIndicator Label="@_tippingShiftLabel" Passed="@_hasTippingPointRisen" />
+        <p class="chart-readout">
+            F*_pre = <strong>@_fStarPre.ToString("F2")</strong>
+            &ensp;|&ensp;F*_post = <strong>@_fStarPost.ToString("F2")</strong>
+            &ensp;|&ensp;Shift = @((_fStarPost - _fStarPre).ToString("F2"))
+            &ensp;|&ensp;Transfer = @_transferAmount.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Blue dot: F*_pre (before transfer). Red dot: F*_post (after transfer).
+            The vertical line marks the pre-transfer threshold.
+            When the red dot is right of the blue, the tipping point has risen.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="F^*_{\text{post-transfer}} > F^*_{\text{pre-transfer}} \qquad (30)" />
         <h4>In Plain Language</h4>
-        <p>Here is perhaps the deepest consequence of the F→M coupling. A successful knowledge transfer to the model raises the threshold below which force atrophy becomes self-reinforcing. More engineers fall below F* not because they got weaker, but because the threshold moved upward. They were above F* when the model was a simple amplifier. They fall below it when the model becomes a competent-seeming colleague. The better the transfer works, the more it undermines conditions for maintaining human force. A partially successful transfer might be safer than a very successful one.</p>
+        <p>Here is perhaps the deepest consequence of the F-to-M coupling. A successful knowledge transfer to the model raises the threshold below which force atrophy becomes self-reinforcing. More engineers fall below F* not because they got weaker, but because the threshold moved upward. They were above F* when the model was a simple amplifier. They fall below it when the model becomes a competent-seeming colleague. The better the transfer works, the more it undermines conditions for maintaining human force. A partially successful transfer might be safer than a very successful one.</p>
+        <h4>Reading the Charts</h4>
+        <p>The number line places F*_pre and F*_post on the same scale. The threshold marker (vertical line) is at F*_pre. When the transfer amount increases, M_absorbed grows, pushing F*_post rightward. The indicator confirms whether the threshold has risen. Try increasing the transfer amount to see how successful transfer paradoxically raises the bar for everyone.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Tipping point → <strong>Eq (14)</strong></li>
-            <li>Force dynamics → <strong>Eq (11)</strong></li>
-            <li>Transfer rate → <strong>Eq (26)</strong></li>
+            <li>Tipping point: <strong>Eq (14)</strong></li>
+            <li>Force dynamics: <strong>Eq (11)</strong></li>
+            <li>Transfer rate: <strong>Eq (26)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
+
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Slider Panel                                                            *@
+@* ──────────────────────────────────────────────────────────────────────── *@
 
 <FloatingSliderPanel Visible="true" Title="Transfer Parameters" DefaultY="100">
-    <div class="slider-group-header">Eq (26): Transfer Rate</div>
-    <ParameterSlider Label="η_surface" Min="0" Max="1" Step="0.05"
-                     Value="@_etaSurface" ValueChanged="@OnEtaSurfaceChanged" />
-    <ParameterSlider Label="η_middle" Min="0" Max="1" Step="0.05"
-                     Value="@_etaMiddle" ValueChanged="@OnEtaMiddleChanged" />
-    <ParameterSlider Label="η_deep" Min="0" Max="1" Step="0.05"
-                     Value="@_etaDeep" ValueChanged="@OnEtaDeepChanged" />
-    <ParameterSlider Label="F_surface" Min="0" Max="10" Step="0.5"
-                     Value="@_forceSurface" ValueChanged="@OnForceSurfaceChanged" />
-    <ParameterSlider Label="F_middle" Min="0" Max="10" Step="0.5"
-                     Value="@_forceMiddle" ValueChanged="@OnForceMiddleChanged" />
-    <ParameterSlider Label="F_deep" Min="0" Max="10" Step="0.5"
-                     Value="@_forceDeep" ValueChanged="@OnForceDeepChanged" />
-    <div class="slider-group-header">Eq (29): Knowledge Preservation</div>
-    <ParameterSlider Label="K_tacit" Min="0" Max="20" Step="0.5"
-                     Value="@_kTacit" ValueChanged="@OnKTacitChanged" />
-    <ParameterSlider Label="K_model" Min="0" Max="20" Step="0.5"
-                     Value="@_kModel" ValueChanged="@OnKModelChanged" />
-    <div class="slider-group-header">Eq (28): Time Allocation</div>
-    <ParameterSlider Label="τ_create" Min="0" Max="10" Step="0.5"
-                     Value="@_tauCreate" ValueChanged="@OnTauCreateChanged" />
-    <ParameterSlider Label="τ_eval" Min="0" Max="5" Step="0.25"
-                     Value="@_tauEval" ValueChanged="@OnTauEvalChanged" />
-    <ParameterSlider Label="τ_extract" Min="0" Max="5" Step="0.25"
-                     Value="@_tauExtract" ValueChanged="@OnTauExtractChanged" />
-    <ParameterSlider Label="F_high" Min="1" Max="10" Step="0.5"
-                     Value="@_forceHigh" ValueChanged="@OnForceHighChanged" />
-    <div class="slider-group-header">Eq (31): Data Quality Spiral</div>
-    <ParameterSlider Label="Q₀ (initial quality)" Min="0" Max="10" Step="0.5"
-                     Value="@_qualityCurrent" ValueChanged="@OnQualityCurrentChanged" />
-    <ParameterSlider Label="F_avg (annotators)" Min="0" Max="10" Step="0.5"
-                     Value="@_avgForceAnnotators" ValueChanged="@OnAvgForceAnnotatorsChanged" />
-    <ParameterSlider Label="M₀ (initial multiplier)" Min="0.5" Max="5" Step="0.25"
-                     Value="@_m0Growth" ValueChanged="@OnM0GrowthChanged" />
-    <ParameterSlider Label="μ (growth rate)" Min="0.01" Max="0.5" Step="0.01"
-                     Value="@_muGrowth" ValueChanged="@OnMuGrowthChanged" />
-    <div class="slider-group-header">Eq (30): Tipping Point Shift</div>
-    <ParameterSlider Label="β (decay)" Min="0" Max="1" Step="0.01"
-                     Value="@_tpBeta" ValueChanged="@OnTpBetaChanged" />
-    <ParameterSlider Label="R (replacement)" Min="0" Max="5" Step="0.1"
-                     Value="@_tpReplacement" ValueChanged="@OnTpReplacementChanged" />
-    <ParameterSlider Label="σ (absorption)" Min="0" Max="2" Step="0.05"
-                     Value="@_tpSigma" ValueChanged="@OnTpSigmaChanged" />
-    <ParameterSlider Label="M_abs (absorbed)" Min="0" Max="5" Step="0.1"
-                     Value="@_tpMAbsorbed" ValueChanged="@OnTpMAbsorbedChanged" />
-    <ParameterSlider Label="γ (engagement rate)" Min="0" Max="1" Step="0.01"
-                     Value="@_tpGamma" ValueChanged="@OnTpGammaChanged" />
-    <ParameterSlider Label="E (engagement)" Min="0" Max="5" Step="0.1"
-                     Value="@_tpEngagement" ValueChanged="@OnTpEngagementChanged" />
-    <ParameterSlider Label="Transfer amount" Min="0" Max="3" Step="0.1"
-                     Value="@_transferAmount" ValueChanged="@OnTransferAmountChanged" />
+
+    <div class="slider-context-label">
+        @if (_showAllSliders)
+        {
+            <span>Showing all sliders</span>
+        }
+        else if (_activeChartIndex >= 0 && _activeChartIndex < TransferChartNames.Length)
+        {
+            <span>Sliders for: @TransferChartNames[_activeChartIndex]</span>
+        }
+        &ensp;
+        <button class="slider-show-all-toggle" @onclick="ToggleShowAll">
+            @(_showAllSliders ? "Auto-filter" : "Show all")
+        </button>
+    </div>
+
+    @* Group 0: Eq (26) Transfer Rate *@
+    @if (IsGroupVisible(0))
+    {
+        <div class="slider-group-header">Eq (26): Transfer Rate</div>
+    }
+    <div class="slider-slot @SlotClass("eta_s")">
+        <ParameterSlider Label="η_surface" Min="0" Max="1" Step="0.05"
+                         Value="@_etaSurface" ValueChanged="v => { _etaSurface = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("eta_m")">
+        <ParameterSlider Label="η_middle" Min="0" Max="1" Step="0.05"
+                         Value="@_etaMiddle" ValueChanged="v => { _etaMiddle = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("eta_d")">
+        <ParameterSlider Label="η_deep" Min="0" Max="1" Step="0.05"
+                         Value="@_etaDeep" ValueChanged="v => { _etaDeep = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("f_s")">
+        <ParameterSlider Label="F_surface" Min="0" Max="10" Step="0.5"
+                         Value="@_forceSurface" ValueChanged="v => { _forceSurface = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("f_m")">
+        <ParameterSlider Label="F_middle" Min="0" Max="10" Step="0.5"
+                         Value="@_forceMiddle" ValueChanged="v => { _forceMiddle = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("f_d")">
+        <ParameterSlider Label="F_deep" Min="0" Max="10" Step="0.5"
+                         Value="@_forceDeep" ValueChanged="v => { _forceDeep = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tau")">
+        <ParameterSlider Label="τ_extract" Min="0" Max="5" Step="0.25"
+                         Value="@_tauExtract" ValueChanged="v => { _tauExtract = v; Recalculate(); }" />
+    </div>
+
+    @* Group 1: Eq (29) Knowledge Preservation *@
+    @if (IsGroupVisible(1))
+    {
+        <div class="slider-group-header">Eq (29): Knowledge Preservation</div>
+    }
+    <div class="slider-slot @SlotClass("k_tacit")">
+        <ParameterSlider Label="K_tacit" Min="0" Max="20" Step="0.5"
+                         Value="@_kTacit" ValueChanged="v => { _kTacit = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("k_model")">
+        <ParameterSlider Label="K_model" Min="0" Max="20" Step="0.5"
+                         Value="@_kModel" ValueChanged="v => { _kModel = v; Recalculate(); }" />
+    </div>
+
+    @* Group 2: Eq (27) Absorption Ceiling *@
+    @if (IsGroupVisible(2))
+    {
+        <div class="slider-group-header">Eq (27): Absorption Ceiling</div>
+    }
+    <div class="slider-slot @SlotClass("m0_abs")">
+        <ParameterSlider Label="M₀ (initial model)" Min="0.5" Max="5" Step="0.25"
+                         Value="@_m0Absorption" ValueChanged="v => { _m0Absorption = v; Recalculate(); }" />
+    </div>
+
+    @* Group 3: Eq (28) Time Allocation *@
+    @if (IsGroupVisible(3))
+    {
+        <div class="slider-group-header">Eq (28): Time Allocation</div>
+    }
+    <div class="slider-slot @SlotClass("tau_create")">
+        <ParameterSlider Label="τ_create" Min="0" Max="10" Step="0.5"
+                         Value="@_tauCreate" ValueChanged="v => { _tauCreate = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tau_eval")">
+        <ParameterSlider Label="τ_eval" Min="0" Max="5" Step="0.25"
+                         Value="@_tauEval" ValueChanged="v => { _tauEval = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("f_high")">
+        <ParameterSlider Label="F_high" Min="1" Max="10" Step="0.5"
+                         Value="@_forceHigh" ValueChanged="v => { _forceHigh = v; Recalculate(); }" />
+    </div>
+
+    @* Group 4: Eq (31) Data Quality Spiral *@
+    @if (IsGroupVisible(4))
+    {
+        <div class="slider-group-header">Eq (31): Data Quality Spiral</div>
+    }
+    <div class="slider-slot @SlotClass("q0")">
+        <ParameterSlider Label="Q₀ (initial quality)" Min="0" Max="10" Step="0.5"
+                         Value="@_qualityCurrent" ValueChanged="v => { _qualityCurrent = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("f_avg")">
+        <ParameterSlider Label="F_avg (annotators)" Min="0" Max="10" Step="0.5"
+                         Value="@_avgForceAnnotators" ValueChanged="v => { _avgForceAnnotators = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("m0_growth")">
+        <ParameterSlider Label="M₀ (initial multiplier)" Min="0.5" Max="5" Step="0.25"
+                         Value="@_m0Growth" ValueChanged="v => { _m0Growth = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("mu")">
+        <ParameterSlider Label="μ (growth rate)" Min="0.01" Max="0.5" Step="0.01"
+                         Value="@_muGrowth" ValueChanged="v => { _muGrowth = v; Recalculate(); }" />
+    </div>
+
+    @* Group 5: Eq (30) Tipping Point Shift *@
+    @if (IsGroupVisible(5))
+    {
+        <div class="slider-group-header">Eq (30): Tipping Point Shift</div>
+    }
+    <div class="slider-slot @SlotClass("tp_beta")">
+        <ParameterSlider Label="β (decay)" Min="0" Max="1" Step="0.01"
+                         Value="@_tpBeta" ValueChanged="v => { _tpBeta = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tp_r")">
+        <ParameterSlider Label="R (replacement)" Min="0" Max="5" Step="0.1"
+                         Value="@_tpReplacement" ValueChanged="v => { _tpReplacement = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tp_sigma")">
+        <ParameterSlider Label="σ (absorption)" Min="0" Max="2" Step="0.05"
+                         Value="@_tpSigma" ValueChanged="v => { _tpSigma = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tp_mabs")">
+        <ParameterSlider Label="M_abs (absorbed)" Min="0" Max="5" Step="0.1"
+                         Value="@_tpMAbsorbed" ValueChanged="v => { _tpMAbsorbed = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tp_gamma")">
+        <ParameterSlider Label="γ (engagement rate)" Min="0" Max="1" Step="0.01"
+                         Value="@_tpGamma" ValueChanged="v => { _tpGamma = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("tp_e")">
+        <ParameterSlider Label="E (engagement)" Min="0" Max="5" Step="0.1"
+                         Value="@_tpEngagement" ValueChanged="v => { _tpEngagement = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @SlotClass("transfer")">
+        <ParameterSlider Label="Transfer amount" Min="0" Max="3" Step="0.1"
+                         Value="@_transferAmount" ValueChanged="v => { _transferAmount = v; Recalculate(); }" />
+    </div>
 </FloatingSliderPanel>
 
 @code {
-    // Shared eta sliders
+    // ═══════════════════════════════════════════════════════════════════════
+    // Scroll-aware slider state
+    // ═══════════════════════════════════════════════════════════════════════
+    private int _activeChartIndex = 0;
+    private bool _showAllSliders;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<TransferPage>? _dotNetRef;
+
+    private static readonly string[] TransferChartNames =
+    {
+        "Transfer Rate Surface",
+        "Transfer Rate Sensitivity",
+        "Efficiency Validation",
+        "Knowledge Preservation",
+        "Absorption Ceiling",
+        "Time Allocation",
+        "Data Quality Spiral",
+        "Tipping Point Shift"
+    };
+
+    private static readonly HashSet<string>[] ChartSliderKeys =
+    {
+        new() { "eta_s", "eta_m", "eta_d", "f_s", "f_m", "f_d", "tau" },                          // Chart 0: Transfer HeatMap
+        new() { "eta_s", "eta_m", "eta_d", "f_s", "f_m", "f_d", "tau" },                          // Chart 1: Transfer Sensitivity
+        new() { "eta_s", "eta_m", "eta_d" },                                                        // Chart 2: Efficiency Validation
+        new() { "k_tacit", "k_model" },                                                              // Chart 3: Knowledge Preservation
+        new() { "eta_s", "eta_m", "eta_d", "f_s", "f_m", "f_d", "m0_abs" },                       // Chart 4: Absorption Ceiling
+        new() { "tau_create", "tau_eval", "tau", "f_high" },                                        // Chart 5: Time Allocation
+        new() { "q0", "f_avg", "m0_growth", "mu" },                                                // Chart 6: Data Quality Spiral
+        new() { "tp_beta", "tp_r", "tp_sigma", "tp_mabs", "tp_gamma", "tp_e", "transfer" },       // Chart 7: Tipping Point Shift
+    };
+
+    private static readonly string[][] GroupKeys =
+    {
+        new[] { "eta_s", "eta_m", "eta_d", "f_s", "f_m", "f_d", "tau" },
+        new[] { "k_tacit", "k_model" },
+        new[] { "m0_abs" },
+        new[] { "tau_create", "tau_eval", "f_high" },
+        new[] { "q0", "f_avg", "m0_growth", "mu" },
+        new[] { "tp_beta", "tp_r", "tp_sigma", "tp_mabs", "tp_gamma", "tp_e", "transfer" },
+    };
+
+    private bool IsSliderVisible(string key) =>
+        _showAllSliders ||
+        (_activeChartIndex >= 0 && _activeChartIndex < ChartSliderKeys.Length &&
+         ChartSliderKeys[_activeChartIndex].Contains(key));
+
+    private bool IsGroupVisible(int group) =>
+        _showAllSliders || GroupKeys[group].Any(IsSliderVisible);
+
+    private string SlotClass(string key) => IsSliderVisible(key) ? "" : "hidden";
+
+    private void ToggleShowAll() => _showAllSliders = !_showAllSliders;
+
+    private static readonly string[] ChartElementIds =
+    {
+        "transfer-chart-0", "transfer-chart-1", "transfer-chart-2", "transfer-chart-3",
+        "transfer-chart-4", "transfer-chart-5", "transfer-chart-6", "transfer-chart-7"
+    };
+
+    [JSInvokable]
+    public void OnChartScrolled(int index)
+    {
+        if (index == _activeChartIndex) return;
+        _activeChartIndex = index;
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Parameters
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Eq (26) shared parameters
     private double _etaSurface = 0.8;
     private double _etaMiddle = 0.5;
     private double _etaDeep = 0.2;
-
-    // Shared force sliders
     private double _forceSurface = 8.0;
     private double _forceMiddle = 5.0;
     private double _forceDeep = 3.0;
+    private double _tauExtract = 1.0;
 
     private double[] Eta => new[] { _etaSurface, _etaMiddle, _etaDeep };
     private double[] Forces => new[] { _forceSurface, _forceMiddle, _forceDeep };
 
-    // ─── Chart 1: Transfer Rate Bars ───
-    private static readonly double[] TauValues = { 0.5, 1.0, 2.0, 5.0 };
-    private IReadOnlyList<BarItem> _transferRateBars => TauValues
-        .Select(tau => new BarItem($"τ={tau}", ForceToModelTransfer.TransferRate(Eta, Forces, tau)))
-        .ToList();
-
-    // ─── Chart 2: Efficiency Validation ───
-    private bool _efficiencyValid => ForceToModelTransfer.ValidateTransferEfficiencies(_etaSurface, _etaMiddle, _etaDeep);
-    private string _validationLabel => _efficiencyValid
-        ? $"Valid: η_s={_etaSurface:F2}, η_m={_etaMiddle:F2}, η_d={_etaDeep:F2}"
-        : $"Invalid: η_s={_etaSurface:F2}, η_m={_etaMiddle:F2}, η_d={_etaDeep:F2}";
-
-    // ─── Chart 2b: Knowledge Preservation (Eq 29) ───
+    // Eq (29) Knowledge Preservation
     private double _kTacit = 10.0;
     private double _kModel = 6.0;
-    private bool _knowledgePreserved => ForceToModelTransfer.IsKnowledgePreserved(_kTacit, _kModel);
-    private string _knowledgePreservedLabel => _knowledgePreserved
-        ? $"Knowledge preserved: K_tacit ({_kTacit:F1}) = K_model ({_kModel:F1})"
-        : $"Knowledge lost: K_tacit ({_kTacit:F1}) ≠ K_model ({_kModel:F1})";
 
-    private void OnKTacitChanged(double val) { _kTacit = val; }
-    private void OnKModelChanged(double val) { _kModel = val; }
+    // Eq (27) Absorption Ceiling
+    private double _m0Absorption = 1.0;
 
-    // ─── Chart 3: Absorption Ceiling Bars ───
-    private static readonly double[] M0Values = { 0.5, 1.0, 2.0, 3.0, 5.0 };
-    private IReadOnlyList<BarItem> _absorptionBars => M0Values
-        .Select(m0 => new BarItem($"M₀={m0}", ForceToModelTransfer.AbsorptionCeiling(m0, Eta, Forces)))
-        .ToList();
-
-    // Slider callbacks (Wave 3)
-    private void OnEtaSurfaceChanged(double val) { _etaSurface = val; }
-    private void OnEtaMiddleChanged(double val) { _etaMiddle = val; }
-    private void OnEtaDeepChanged(double val) { _etaDeep = val; }
-    private void OnForceSurfaceChanged(double val) { _forceSurface = val; }
-    private void OnForceMiddleChanged(double val) { _forceMiddle = val; }
-    private void OnForceDeepChanged(double val) { _forceDeep = val; }
-
-    // ═══════════════════════════════════════════════════════════
-    // Composite 1: Time Allocation Trade-off — Eq (28) + (7a)
-    // ═══════════════════════════════════════════════════════════
+    // Eq (28) Time Allocation
     private double _tauCreate = 5.0;
     private double _tauEval = 1.0;
-    private double _tauExtract = 1.0;
     private double _forceHigh = 8.0;
 
-    private static readonly double[] FractionValues = { 0.1, 0.3, 0.5, 0.7 };
-
-    private IReadOnlyList<BarItem> _timeAllocationBars
-    {
-        get
-        {
-            var total = ForceToModelTransfer.TotalTimeAllocation(_tauCreate, _tauEval, _tauExtract);
-            var bars = new List<BarItem>
-            {
-                new("τ_create", _tauCreate, "#2563eb"),
-                new("τ_eval", _tauEval, "#059669"),
-                new("τ_extract", _tauExtract, "#d97706"),
-                new("Total τ", total, "#7c3aed")
-            };
-            foreach (var frac in FractionValues)
-            {
-                var reallocated = CreationEvaluation.ReallocatedForce(_forceHigh, frac);
-                bars.Add(new BarItem($"Realloc f={frac:F1}", reallocated, "#dc2626"));
-            }
-            return bars;
-        }
-    }
-
-    private void OnTauCreateChanged(double val) { _tauCreate = val; }
-    private void OnTauEvalChanged(double val) { _tauEval = val; }
-    private void OnTauExtractChanged(double val) { _tauExtract = val; }
-    private void OnForceHighChanged(double val) { _forceHigh = val; }
-
-    // ═══════════════════════════════════════════════════════════
-    // Composite 2: Data Quality Spiral — Eq (31) + (25)
-    // ═══════════════════════════════════════════════════════════
+    // Eq (31) Data Quality Spiral
     private double _qualityCurrent = 5.0;
     private double _avgForceAnnotators = 6.0;
     private double _m0Growth = 1.0;
     private double _muGrowth = 0.1;
 
-    private IReadOnlyList<ChartSeries> _qualitySpiralSeries
-    {
-        get
-        {
-            var qualityPoints = new List<DataPoint>();
-            var multiplierPoints = new List<DataPoint>();
-            Func<double, double, double> qualityFn = (q, f) => q + 0.1 * f;
-
-            double q = _qualityCurrent;
-            for (int t = 0; t <= 20; t++)
-            {
-                qualityPoints.Add(new DataPoint(t, q));
-                multiplierPoints.Add(new DataPoint(t, ModelGrowth.MultiplierAtTime(_m0Growth, _muGrowth, t)));
-                q = ForceToModelTransfer.ModelQualityNext(q, _avgForceAnnotators, qualityFn);
-            }
-
-            return new List<ChartSeries>
-            {
-                new("Quality Q(t)", qualityPoints, "#2563eb", 2.0, true),
-                new("Multiplier M(t)", multiplierPoints, "#dc2626", 2.0, true)
-            };
-        }
-    }
-
-    private void OnQualityCurrentChanged(double val) { _qualityCurrent = val; }
-    private void OnAvgForceAnnotatorsChanged(double val) { _avgForceAnnotators = val; }
-    private void OnM0GrowthChanged(double val) { _m0Growth = val; }
-    private void OnMuGrowthChanged(double val) { _muGrowth = val; }
-
-    // ═══════════════════════════════════════════════════════════
-    // Composite 3: Tipping Point Shift — Eq (30) + (14)
-    // ═══════════════════════════════════════════════════════════
+    // Eq (30) Tipping Point Shift
     private double _tpBeta = 0.3;
     private double _tpReplacement = 2.0;
     private double _tpSigma = 0.5;
@@ -342,26 +616,521 @@
     private double _tpEngagement = 1.0;
     private double _transferAmount = 1.0;
 
-    private double _fStarPre => ForceDynamics.TippingPoint(_tpBeta, _tpReplacement, _tpSigma, _tpMAbsorbed, _tpGamma, _tpEngagement);
-    private double _fStarPost => ForceDynamics.TippingPoint(_tpBeta, _tpReplacement, _tpSigma, _tpMAbsorbed + _transferAmount, _tpGamma, _tpEngagement);
-    private bool _hasTippingPointRisen => ForceToModelTransfer.HasTippingPointRisen(_fStarPost, _fStarPre);
-    private double _tpNumberLineMax => Math.Max(Math.Max(_fStarPre, _fStarPost) * 1.5, 10);
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart data fields
+    // ═══════════════════════════════════════════════════════════════════════
 
-    private string _tippingShiftLabel => _hasTippingPointRisen
-        ? $"F*_post ({_fStarPost:F2}) > F*_pre ({_fStarPre:F2}) — tipping point risen"
-        : $"F*_post ({_fStarPost:F2}) <= F*_pre ({_fStarPre:F2}) — tipping point not risen";
+    // Chart 0: Transfer Rate HeatMap
+    private double[,] _transferHeatData = new double[0, 0];
+    private double[] _transferHeatXValues = Array.Empty<double>();
+    private double[] _transferHeatYValues = Array.Empty<double>();
+    private IReadOnlyList<string> _transferHeatTooltip = Array.Empty<string>();
+    private double _transferHeatColorMax = 50.0;
+    private IReadOnlyList<RadarAxis> _transferRadarAxes = Array.Empty<RadarAxis>();
 
-    private IReadOnlyList<NumberLinePoint> _tippingPointShiftPoints => new List<NumberLinePoint>
+    // Chart 1: Transfer Sensitivity
+    private IReadOnlyList<ChartSeries> _transferSensitivitySeries = Array.Empty<ChartSeries>();
+    private IReadOnlyList<ChartMarker> _transferSensitivityMarkers = Array.Empty<ChartMarker>();
+    private static readonly IReadOnlySet<int> _transferSensitivityHighlight = new HashSet<int> { 3, 5 }; // F_surface, F_deep
+
+    // Chart 3: Knowledge Bars
+    private IReadOnlyList<BarItem> _knowledgeBars = Array.Empty<BarItem>();
+    private bool _knowledgePreserved;
+    private string _knowledgePreservedLabel = "";
+
+    // Chart 4: Absorption Ceiling HeatMap
+    private double[,] _absHeatData = new double[0, 0];
+    private double[] _absHeatXValues = Array.Empty<double>();
+    private double[] _absHeatYValues = Array.Empty<double>();
+    private IReadOnlyList<string> _absHeatTooltip = Array.Empty<string>();
+    private double _absHeatColorMax = 50.0;
+    private IReadOnlyList<RadarAxis> _absRadarAxes = Array.Empty<RadarAxis>();
+
+    // Chart 5: Time Allocation
+    private IReadOnlyList<BarItem> _timeAllocationBars = Array.Empty<BarItem>();
+    private IReadOnlyList<RadarAxis> _timeRadarAxes = Array.Empty<RadarAxis>();
+
+    // Chart 6: Data Quality Spiral
+    private IReadOnlyList<ChartSeries> _qualitySpiralSeries = Array.Empty<ChartSeries>();
+    private IReadOnlyList<ChartMarker> _qualitySpiralMarkers = Array.Empty<ChartMarker>();
+    private static readonly IReadOnlySet<int> _qualitySpiralHighlight = new HashSet<int> { 0 }; // Highlight Quality
+    private double _qualityAtEnd;
+    private double _multiplierAtEnd;
+
+    // Chart 2: Efficiency Validation
+    private bool _efficiencyValid;
+    private string _validationLabel = "";
+
+    // Chart 7: Tipping Point Shift
+    private double _fStarPre;
+    private double _fStarPost;
+    private bool _hasTippingPointRisen;
+    private double _tpNumberLineMax;
+    private string _tippingShiftLabel = "";
+    private IReadOnlyList<NumberLinePoint> _tippingPointShiftPoints = Array.Empty<NumberLinePoint>();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Lifecycle
+    // ═══════════════════════════════════════════════════════════════════════
+
+    protected override void OnInitialized() => Recalculate();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        new(_fStarPre, "#2563eb"),
-        new(_fStarPost, "#dc2626")
-    };
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _jsModule.InvokeVoidAsync(
+                    "initChartObserver", _dotNetRef, "OnChartScrolled", ChartElementIds);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
+        }
+    }
 
-    private void OnTpBetaChanged(double val) { _tpBeta = val; }
-    private void OnTpReplacementChanged(double val) { _tpReplacement = val; }
-    private void OnTpSigmaChanged(double val) { _tpSigma = val; }
-    private void OnTpMAbsorbedChanged(double val) { _tpMAbsorbed = val; }
-    private void OnTpGammaChanged(double val) { _tpGamma = val; }
-    private void OnTpEngagementChanged(double val) { _tpEngagement = val; }
-    private void OnTransferAmountChanged(double val) { _transferAmount = val; }
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("destroyChartObserver");
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Helpers
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private double ComputeCurrentTransferRate() =>
+        ForceToModelTransfer.TransferRate(Eta, Forces, _tauExtract);
+
+    private double ComputeWeightedSum()
+    {
+        var eta = Eta;
+        var forces = Forces;
+        double sum = 0;
+        for (int i = 0; i < eta.Length; i++) sum += eta[i] * forces[i];
+        return sum;
+    }
+
+    private double ComputeCurrentCeiling() =>
+        ForceToModelTransfer.AbsorptionCeiling(_m0Absorption, Eta, Forces);
+
+    private double ComputeTotalTime() =>
+        ForceToModelTransfer.TotalTimeAllocation(_tauCreate, _tauEval, _tauExtract);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Master recalculation
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void Recalculate()
+    {
+        ComputeTransferHeatMap();
+        ComputeTransferRadar();
+        ComputeTransferSensitivity();
+        ComputeEfficiencyValidation();
+        ComputeKnowledgeBars();
+        ComputeAbsorptionHeatMap();
+        ComputeAbsorptionRadar();
+        ComputeTimeAllocation();
+        ComputeTimeRadar();
+        ComputeQualitySpiral();
+        ComputeTippingPoint();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 0: Transfer Rate HeatMap — Eq (26)
+    // Sweep F_surface (x) vs F_deep (y)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeTransferHeatMap()
+    {
+        const int steps = 25;
+        _transferHeatXValues = new double[steps];
+        _transferHeatYValues = new double[steps];
+        _transferHeatData = new double[steps, steps];
+
+        for (int i = 0; i < steps; i++)
+            _transferHeatXValues[i] = 0.0 + i * 10.0 / (steps - 1);
+        for (int j = 0; j < steps; j++)
+            _transferHeatYValues[j] = 0.0 + j * 10.0 / (steps - 1);
+
+        var eta = Eta;
+        for (int r = 0; r < steps; r++)
+        {
+            for (int c = 0; c < steps; c++)
+            {
+                var testForces = new[] { _transferHeatXValues[c], _forceMiddle, _transferHeatYValues[r] };
+                _transferHeatData[r, c] = ForceToModelTransfer.TransferRate(eta, testForces, _tauExtract);
+            }
+        }
+
+        // Fixed color scale: max at all forces=10, all eta=1, tau=5
+        _transferHeatColorMax = ForceToModelTransfer.TransferRate(
+            new[] { 1.0, 1.0, 1.0 }, new[] { 10.0, 10.0, 10.0 }, Math.Max(_tauExtract, 5.0));
+
+        var rate = ComputeCurrentTransferRate();
+        var wSum = ComputeWeightedSum();
+        _transferHeatTooltip = new List<string>
+        {
+            "Your current position",
+            $"F_surface = {_forceSurface:F1}, F_deep = {_forceDeep:F1}",
+            $"\u03c4_extract = {_tauExtract:F2}",
+            $"\u03a3(\u03b7\u00b7F) = {wSum:F2}",
+            $"Transfer rate = {rate:F2}",
+            $"F_middle held at {_forceMiddle:F1}"
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 0: Transfer Radar
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeTransferRadar()
+    {
+        var layerContribs = new[]
+        {
+            _etaSurface * _forceSurface,
+            _etaMiddle * _forceMiddle,
+            _etaDeep * _forceDeep
+        };
+        var maxContrib = 10.0; // eta=1 * F=10
+        var total = layerContribs[0] + layerContribs[1] + layerContribs[2];
+
+        _transferRadarAxes = new List<RadarAxis>
+        {
+            new("Surface", layerContribs[0], maxContrib, new List<string>
+            {
+                "Surface Layer Contribution",
+                $"\u03b7_s \u00b7 F_s = {_etaSurface:F2} \u00b7 {_forceSurface:F1} = {layerContribs[0]:F2}",
+                $"{(layerContribs[0] / Math.Max(total, 0.01) * 100):F0}% of total transfer",
+                "Heatmap x-axis"
+            }),
+            new("Middle", layerContribs[1], maxContrib, new List<string>
+            {
+                "Middle Layer Contribution",
+                $"\u03b7_m \u00b7 F_m = {_etaMiddle:F2} \u00b7 {_forceMiddle:F1} = {layerContribs[1]:F2}",
+                $"{(layerContribs[1] / Math.Max(total, 0.01) * 100):F0}% of total transfer",
+                "Held fixed on heatmap"
+            }),
+            new("Deep", layerContribs[2], maxContrib, new List<string>
+            {
+                "Deep Layer Contribution",
+                $"\u03b7_d \u00b7 F_d = {_etaDeep:F2} \u00b7 {_forceDeep:F1} = {layerContribs[2]:F2}",
+                $"{(layerContribs[2] / Math.Max(total, 0.01) * 100):F0}% of total transfer",
+                "Heatmap y-axis"
+            })
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 1: Transfer Sensitivity — Eq (26)
+    // One line per parameter: η_s, η_m, η_d, F_s, F_m, F_d, τ_extract
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeTransferSensitivity()
+    {
+        var paramLabels = new[] { "\u03b7_surface", "\u03b7_middle", "\u03b7_deep", "F_surface", "F_middle", "F_deep", "\u03c4_extract" };
+        var colors = new[] { "#2563eb", "#16a34a", "#9333ea", "#dc2626", "#ea580c", "#0891b2", "#d946ef" };
+        var paramMins = new[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+        var paramMaxs = new[] { 1.0, 1.0, 1.0, 10.0, 10.0, 10.0, 5.0 };
+        var currentVals = new[] { _etaSurface, _etaMiddle, _etaDeep, _forceSurface, _forceMiddle, _forceDeep, _tauExtract };
+
+        const int pts = 50;
+        var series = new List<ChartSeries>();
+        var markers = new List<ChartMarker>();
+
+        for (int p = 0; p < paramLabels.Length; p++)
+        {
+            var points = new List<DataPoint>();
+            for (int i = 0; i < pts; i++)
+            {
+                double val = paramMins[p] + i * (paramMaxs[p] - paramMins[p]) / (pts - 1);
+                // Temporarily override one parameter
+                var testEta = new[] { _etaSurface, _etaMiddle, _etaDeep };
+                var testForces = new[] { _forceSurface, _forceMiddle, _forceDeep };
+                double testTau = _tauExtract;
+
+                if (p < 3) testEta[p] = val;
+                else if (p < 6) testForces[p - 3] = val;
+                else testTau = val;
+
+                double rate = ForceToModelTransfer.TransferRate(testEta, testForces, testTau);
+                // Normalize x to [0,1] for comparable display
+                double normalizedX = (val - paramMins[p]) / Math.Max(paramMaxs[p] - paramMins[p], 0.01);
+                points.Add(new DataPoint(normalizedX * 10.0, rate));
+            }
+            series.Add(new ChartSeries(paramLabels[p], points, colors[p], 2.0, false));
+
+            // Marker at current value
+            double curNormalized = (currentVals[p] - paramMins[p]) / Math.Max(paramMaxs[p] - paramMins[p], 0.01) * 10.0;
+            double curRate = ComputeCurrentTransferRate();
+            var isHeatAxis = p == 3 || p == 5; // F_surface, F_deep
+            markers.Add(new ChartMarker(curNormalized, curRate, colors[p], null, new List<string>
+            {
+                paramLabels[p],
+                $"Value = {currentVals[p]:F2} (of {paramMaxs[p]:F1})",
+                $"Transfer rate = {curRate:F2}",
+                isHeatAxis ? "Heatmap axis" : "Held fixed on heatmap"
+            }));
+        }
+
+        _transferSensitivitySeries = series;
+        _transferSensitivityMarkers = markers;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 2: Efficiency Validation — Eq (26a)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeEfficiencyValidation()
+    {
+        _efficiencyValid = ForceToModelTransfer.ValidateTransferEfficiencies(_etaSurface, _etaMiddle, _etaDeep);
+        _validationLabel = _efficiencyValid
+            ? $"Valid: \u03b7_s={_etaSurface:F2}, \u03b7_m={_etaMiddle:F2}, \u03b7_d={_etaDeep:F2}"
+            : $"Invalid: \u03b7_s={_etaSurface:F2}, \u03b7_m={_etaMiddle:F2}, \u03b7_d={_etaDeep:F2}";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 3: Knowledge Preservation — Eq (29)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeKnowledgeBars()
+    {
+        _knowledgePreserved = ForceToModelTransfer.IsKnowledgePreserved(_kTacit, _kModel);
+        _knowledgePreservedLabel = _knowledgePreserved
+            ? $"Knowledge preserved: K_tacit ({_kTacit:F1}) = K_model ({_kModel:F1})"
+            : $"Knowledge lost: K_tacit ({_kTacit:F1}) \u2260 K_model ({_kModel:F1})";
+        _knowledgeBars = new List<BarItem>
+        {
+            new("K_tacit", _kTacit, "#2563eb"),
+            new("K_model", _kModel, "#dc2626"),
+            new("Gap", Math.Max(_kTacit - _kModel, 0), "#f59e0b")
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 4: Absorption Ceiling HeatMap — Eq (27)
+    // Sweep M₀ (x) vs F_surface (y)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeAbsorptionHeatMap()
+    {
+        const int steps = 25;
+        _absHeatXValues = new double[steps];
+        _absHeatYValues = new double[steps];
+        _absHeatData = new double[steps, steps];
+
+        for (int i = 0; i < steps; i++)
+            _absHeatXValues[i] = 0.5 + i * 4.5 / (steps - 1);
+        for (int j = 0; j < steps; j++)
+            _absHeatYValues[j] = 0.0 + j * 10.0 / (steps - 1);
+
+        var eta = Eta;
+        for (int r = 0; r < steps; r++)
+        {
+            for (int c = 0; c < steps; c++)
+            {
+                var testForces = new[] { _absHeatYValues[r], _forceMiddle, _forceDeep };
+                _absHeatData[r, c] = ForceToModelTransfer.AbsorptionCeiling(_absHeatXValues[c], eta, testForces);
+            }
+        }
+
+        // Fixed color scale: max at M₀=5, all forces=10, all eta=1
+        _absHeatColorMax = ForceToModelTransfer.AbsorptionCeiling(
+            5.0, new[] { 1.0, 1.0, 1.0 }, new[] { 10.0, 10.0, 10.0 });
+
+        var ceiling = ComputeCurrentCeiling();
+        var wSum = ComputeWeightedSum();
+        _absHeatTooltip = new List<string>
+        {
+            "Your current position",
+            $"M\u2080 = {_m0Absorption:F1}, F_surface = {_forceSurface:F1}",
+            $"\u03a3(\u03b7\u00b7F) = {wSum:F2}",
+            $"Absorption ceiling = {ceiling:F2}",
+            $"F_middle, F_deep held at sliders"
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 4: Absorption Radar
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeAbsorptionRadar()
+    {
+        var layerCeilings = new[]
+        {
+            _etaSurface * _forceSurface,
+            _etaMiddle * _forceMiddle,
+            _etaDeep * _forceDeep
+        };
+        var maxVal = 10.0;
+        var total = _m0Absorption + layerCeilings[0] + layerCeilings[1] + layerCeilings[2];
+
+        _absRadarAxes = new List<RadarAxis>
+        {
+            new("M\u2080", _m0Absorption, 5.0, new List<string>
+            {
+                "Initial Model Capability",
+                $"M\u2080 = {_m0Absorption:F1}",
+                $"{(_m0Absorption / Math.Max(total, 0.01) * 100):F0}% of ceiling",
+                "Heatmap x-axis"
+            }),
+            new("Surface", layerCeilings[0], maxVal, new List<string>
+            {
+                "Surface Layer Ceiling",
+                $"\u03b7_s \u00b7 F_s = {layerCeilings[0]:F2}",
+                $"{(layerCeilings[0] / Math.Max(total, 0.01) * 100):F0}% of ceiling",
+                "Heatmap y-axis"
+            }),
+            new("Middle", layerCeilings[1], maxVal, new List<string>
+            {
+                "Middle Layer Ceiling",
+                $"\u03b7_m \u00b7 F_m = {layerCeilings[1]:F2}",
+                $"{(layerCeilings[1] / Math.Max(total, 0.01) * 100):F0}% of ceiling"
+            }),
+            new("Deep", layerCeilings[2], maxVal, new List<string>
+            {
+                "Deep Layer Ceiling",
+                $"\u03b7_d \u00b7 F_d = {layerCeilings[2]:F2}",
+                $"{(layerCeilings[2] / Math.Max(total, 0.01) * 100):F0}% of ceiling"
+            })
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 5: Time Allocation — Eq (28) + (7a)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private static readonly double[] FractionValues = { 0.1, 0.3, 0.5, 0.7 };
+
+    private void ComputeTimeAllocation()
+    {
+        var total = ForceToModelTransfer.TotalTimeAllocation(_tauCreate, _tauEval, _tauExtract);
+        var bars = new List<BarItem>
+        {
+            new("\u03c4_create", _tauCreate, "#2563eb"),
+            new("\u03c4_eval", _tauEval, "#059669"),
+            new("\u03c4_extract", _tauExtract, "#d97706"),
+            new("Total \u03c4", total, "#7c3aed")
+        };
+        foreach (var frac in FractionValues)
+        {
+            var reallocated = CreationEvaluation.ReallocatedForce(_forceHigh, frac);
+            bars.Add(new BarItem($"Realloc f={frac:F1}", reallocated, "#dc2626"));
+        }
+        _timeAllocationBars = bars;
+    }
+
+    private void ComputeTimeRadar()
+    {
+        var total = Math.Max(ComputeTotalTime(), 0.01);
+        _timeRadarAxes = new List<RadarAxis>
+        {
+            new("Create", _tauCreate, 10.0, new List<string>
+            {
+                "Creation Time",
+                $"\u03c4_create = {_tauCreate:F1}",
+                $"{(_tauCreate / total * 100):F0}% of available time",
+                "Where the multiplier on output is highest"
+            }),
+            new("Evaluate", _tauEval, 5.0, new List<string>
+            {
+                "Evaluation Time",
+                $"\u03c4_eval = {_tauEval:F1}",
+                $"{(_tauEval / total * 100):F0}% of available time",
+                "Bottleneck-clearing for LLM output"
+            }),
+            new("Extract", _tauExtract, 5.0, new List<string>
+            {
+                "Extraction Time",
+                $"\u03c4_extract = {_tauExtract:F1}",
+                $"{(_tauExtract / total * 100):F0}% of available time",
+                "Teaching the model (RLHF, knowledge systems)"
+            })
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 6: Data Quality Spiral — Eq (31) + (25)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeQualitySpiral()
+    {
+        var qualityPoints = new List<DataPoint>();
+        var multiplierPoints = new List<DataPoint>();
+        Func<double, double, double> qualityFn = (q, f) => q + 0.1 * f;
+
+        double q = _qualityCurrent;
+        double lastQ = q;
+        double lastM = _m0Growth;
+
+        for (int t = 0; t <= 20; t++)
+        {
+            qualityPoints.Add(new DataPoint(t, q));
+            double m = ModelGrowth.MultiplierAtTime(_m0Growth, _muGrowth, t);
+            multiplierPoints.Add(new DataPoint(t, m));
+            lastQ = q;
+            lastM = m;
+            q = ForceToModelTransfer.ModelQualityNext(q, _avgForceAnnotators, qualityFn);
+        }
+
+        _qualityAtEnd = lastQ;
+        _multiplierAtEnd = lastM;
+
+        _qualitySpiralSeries = new List<ChartSeries>
+        {
+            new("Quality Q(t)", qualityPoints, "#2563eb", 2.0, true),
+            new("Multiplier M(t)", multiplierPoints, "#dc2626", 2.0, true)
+        };
+
+        // Markers at the endpoint (t=20)
+        _qualitySpiralMarkers = new List<ChartMarker>
+        {
+            new(20, lastQ, "#2563eb", null, new List<string>
+            {
+                "Quality at t=20",
+                $"Q = {lastQ:F2}",
+                $"Started at Q\u2080 = {_qualityCurrent:F1}",
+                $"F_avg = {_avgForceAnnotators:F1}"
+            }),
+            new(20, lastM, "#dc2626", null, new List<string>
+            {
+                "Multiplier at t=20",
+                $"M = {lastM:F2}",
+                $"M\u2080 = {_m0Growth:F1}, \u03bc = {_muGrowth:F2}",
+                "Exponential: M(t) = M\u2080 \u00b7 e^(\u03bct)"
+            })
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Chart 7: Tipping Point Shift — Eq (30) + (14)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void ComputeTippingPoint()
+    {
+        _fStarPre = ForceDynamics.TippingPoint(_tpBeta, _tpReplacement, _tpSigma, _tpMAbsorbed, _tpGamma, _tpEngagement);
+        _fStarPost = ForceDynamics.TippingPoint(_tpBeta, _tpReplacement, _tpSigma, _tpMAbsorbed + _transferAmount, _tpGamma, _tpEngagement);
+        _hasTippingPointRisen = ForceToModelTransfer.HasTippingPointRisen(_fStarPost, _fStarPre);
+        _tpNumberLineMax = Math.Max(Math.Max(_fStarPre, _fStarPost) * 1.5, 10);
+
+        _tippingShiftLabel = _hasTippingPointRisen
+            ? $"F*_post ({_fStarPost:F2}) > F*_pre ({_fStarPre:F2}) \u2014 tipping point risen"
+            : $"F*_post ({_fStarPost:F2}) \u2264 F*_pre ({_fStarPre:F2}) \u2014 tipping point not risen";
+
+        _tippingPointShiftPoints = new List<NumberLinePoint>
+        {
+            new(_fStarPre, "#2563eb"),
+            new(_fStarPost, "#dc2626")
+        };
+    }
 }

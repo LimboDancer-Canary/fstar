@@ -9,10 +9,11 @@ public class TheoryCardTests : BunitContext
     [Fact]
     public void TransferPage_ChartCards_HaveTheoryTabs()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<TransferPage>();
 
         var tabBars = cut.FindAll(".chart-card-tabs");
-        Assert.True(tabBars.Count >= 7, $"Expected at least 7 tab bars but found {tabBars.Count}");
+        Assert.True(tabBars.Count >= 8, $"Expected at least 8 tab bars but found {tabBars.Count}");
     }
 
     [Fact]

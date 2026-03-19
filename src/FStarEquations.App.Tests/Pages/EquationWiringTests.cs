@@ -197,8 +197,32 @@ public class EquationWiringTests : BunitContext
     }
 
     [Fact]
+    public void TransferPage_Renders_ContainsHeatMap()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<TransferPage>();
+
+        var heatSvg = cut.Find("svg.heat-map");
+        Assert.NotNull(heatSvg);
+
+        var rects = cut.FindAll("svg.heat-map rect");
+        Assert.True(rects.Count > 0, "TransferPage HeatMap should render rect elements");
+    }
+
+    [Fact]
+    public void TransferPage_Renders_ContainsRadarChart()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<TransferPage>();
+
+        var markup = cut.Markup;
+        Assert.Contains("radar-chart", markup);
+    }
+
+    [Fact]
     public void TransferPage_Renders_ContainsBarChart()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<TransferPage>();
 
         var barSvg = cut.Find("svg.bar-chart");
@@ -206,6 +230,16 @@ public class EquationWiringTests : BunitContext
 
         var rects = cut.FindAll("svg.bar-chart rect");
         Assert.True(rects.Count > 0, "TransferPage BarChart should render rect elements");
+    }
+
+    [Fact]
+    public void TransferPage_Renders_ContainsLineChart()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<TransferPage>();
+
+        var polylines = cut.FindAll("svg.line-chart polyline");
+        Assert.True(polylines.Count >= 1, "TransferPage should render at least one polyline for sensitivity or spiral charts");
     }
 
     [Fact]
