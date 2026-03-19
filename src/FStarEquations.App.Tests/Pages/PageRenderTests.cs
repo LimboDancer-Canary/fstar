@@ -73,6 +73,7 @@ public class PageRenderTests : BunitContext
     [Fact]
     public void DivergencePage_Renders_WithoutThrowing()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<DivergencePage>();
         Assert.NotNull(cut.Find("h1"));
     }

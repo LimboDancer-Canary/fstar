@@ -1,71 +1,200 @@
 @page "/divergence"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <PageTitle>The Accelerating Gap — Eq (15a-b), (16), (16a), (32)</PageTitle>
 
 <h1>The Accelerating Gap — Eq (15a-b), (16), (16a), (32)</h1>
 
 <blockquote>
-    High-force individuals ride an accelerating curve; low-force individuals face a decelerating one. The gap between them widens at an increasing rate, and each generation starts from a lower baseline than the last. This is the mechanism behind the Great Divergence.
+    High-force individuals ride an accelerating curve; low-force individuals face a decelerating one.
+    The gap between them widens at an increasing rate, and each generation starts from a lower baseline
+    than the last. This is the mechanism behind the Great Divergence.
 </blockquote>
 
-@* ─── Cohort Force Ceiling — Eq (32) ─── *@
+@* ─── Chart 0: Cohort Force Ceiling HeatMap — Eq (32) ─── *@
+<div id="divergence-chart-0">
 <ChartCard Title="Cohort Force Ceiling — Eq (32)"
-           Description="F_init = F_max · (S_avail / S_pre)^ρ as struggle available varies.">
+           Description="F_init = F_max · (S_avail / S_pre)^ρ as a surface over S_avail and ρ.">
     <ChildContent>
-        <LineChart Series="@_ceilingSeries"
-                   XLabel="Struggle Available (S_avail)"
-                   YLabel="Initial Force (F_init)"
-                   XMin="0" XMax="10"
-                   YMin="0"
-                   ShowGrid="true" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <HeatMap Width="600" Height="400"
+                     XLabel="Struggle Available (S_avail)"
+                     YLabel="Elasticity (ρ)"
+                     Data="@_ceilingHeatData"
+                     XValues="@_ceilingHeatXValues"
+                     YValues="@_ceilingHeatYValues"
+                     ColorScaleMin="0"
+                     ColorScaleMax="@_ceilingHeatColorMax"
+                     CrosshairX="@_ceilingSAvailCrosshair"
+                     CrosshairY="@_rho"
+                     CrosshairTooltip="@_ceilingHeatTooltip" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Ceiling Parameters</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_ceilingRadarAxes"
+                            CenterLabel="@($"F₀={ComputeCurrentCeiling():F1}")" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Eq (32): <strong>F_init = @ComputeCurrentCeiling().ToString("F2")</strong>
+            &ensp;|&ensp;F_max=@_forceMax.ToString("F1")
+            &ensp;|&ensp;S_avail=@_ceilingSAvailCrosshair.ToString("F1")
+            &ensp;|&ensp;S_pre=@_strugglePre.ToString("F1")
+            &ensp;|&ensp;&rho;=@_rho.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Heatmap shows F_init over S_avail (&times;) and &rho; (y). Color scale fixed 0 to @_ceilingHeatColorMax.ToString("F0").
+            The red crosshair marks your current slider values. The radar shows the parameter profile.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="F_{\text{initial}}(c) = F_{\text{max}} \cdot \left(\frac{S_{\text{available}}(c)}{S_{\text{pre-LLM}}}\right)^\rho \qquad (32)" />
         <h4>In Plain Language</h4>
-        <p>Each successive cohort enters with a lower force ceiling, not because of individual deficiency but because the environmental conditions for building force have been structurally altered. This is different from atrophy — it's stunted development. More powerful LLMs smooth over more friction, reducing S_available. The force distribution develops a step function at the cohort boundary.</p>
+        <p>
+            Each successive cohort enters with a lower force ceiling, not because of individual deficiency
+            but because the environmental conditions for building force have been structurally altered.
+            This is different from atrophy; it is stunted development. More powerful LLMs smooth over
+            more friction, reducing S_available. When &rho; = 1, the relationship is linear (half the
+            struggle yields half the ceiling). When &rho; &gt; 1, the initial loss has a mild effect
+            but further losses accelerate. When &rho; &lt; 1, even small losses significantly reduce the ceiling.
+        </p>
+        <h4>Reading the Charts</h4>
+        <p>
+            The heatmap shows how the force ceiling varies across two dimensions simultaneously.
+            Moving left (less struggle) always reduces the ceiling, but the shape of that reduction
+            depends on &rho;. The radar chart beside it shows all four ceiling parameters at a glance;
+            a dented polygon reveals which parameter is driving the ceiling down.
+        </p>
         <h4>Connections</h4>
         <ul>
-            <li>Accelerating gap Eq (15a-b)</li>
-            <li>Tacit knowledge Eq (12a)</li>
-            <li>M growing Eq (25)</li>
+            <li>Accelerating gap: <strong>Eq (15a-b)</strong></li>
+            <li>Tacit knowledge: <strong>Eq (12a)</strong></li>
+            <li>M growing: <strong>Eq (25)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Divergence Trajectories — Eq (15a-b), (16), (16a) ─── *@
+@* ─── Chart 1: Divergence Trajectories — Eq (15a-b), (16), (16a) ─── *@
+<div id="divergence-chart-1">
 <ChartCard Title="Divergence Trajectories — Eq (15a-b)"
            Description="Coupled integration of F_H and F_L over time, showing the widening gap.">
     <ChildContent>
-        <LineChart Series="@_divSeries"
-                   XLabel="Time (t)"
-                   YLabel="Force (F)"
-                   XMin="0" XMax="20"
-                   YMin="0"
-                   ShowGrid="true" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <LineChart Series="@_divSeries"
+                       XLabel="Time (t)"
+                       YLabel="Force (F)"
+                       XMin="0" XMax="20"
+                       YMin="0"
+                       ShowGrid="true"
+                       Markers="@_divMarkers" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Trajectory Parameters</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_divRadarAxes"
+                            CenterLabel="@($"Gap={_finalGap:F1}")" />
+            </div>
+        </div>
         <div class="threshold-indicators">
             <ThresholdIndicator Label="Gap Widening (Eq 16)" Passed="@_gapWidening" />
             <ThresholdIndicator Label="Gap Accelerating (Eq 16a)" Passed="@_gapAccelerating" />
         </div>
+        <p class="chart-readout">
+            At t=20: <strong>F_H = @_finalFH.ToString("F1")</strong>
+            &ensp;|&ensp;<strong>F_L = @_finalFL.ToString("F1")</strong>
+            &ensp;|&ensp;<strong>Gap = @_finalGap.ToString("F1")</strong>
+            &ensp;|&ensp;M=@_divM.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Blue: high-force trajectory (compounding via &gamma;MF_H). Red: low-force trajectory (decaying via &beta;M).
+            Purple: the gap between them. Dots mark final values.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equations</h4>
         <KatexBlock Latex="\frac{dF_H}{dt} = \alpha \cdot S_0 + \gamma \cdot M \cdot F_H \qquad (15a)" />
         <KatexBlock Latex="\frac{dF_L}{dt} = \max\!\left(\alpha \cdot S_0 - \beta \cdot M,\; -\kappa \cdot F_L\right) \qquad (15b)" />
         <h4>In Plain Language</h4>
-        <p>The high-force individual's growth rate includes a compounding engine (γMF_H). The low-force individual faces a drag that scales with M. The gap widens faster over time. This is the Matthew Effect in mathematical form. The max function ensures force approaches zero asymptotically (getting ever closer but never quite reaching it) rather than going negative.</p>
+        <p>
+            The high-force individual's growth rate includes a compounding engine (&gamma;MF_H): because it
+            is proportional to both M and to F_H itself, the higher the force, the faster it grows.
+            The low-force individual faces a drag (&beta;M) that scales with the multiplier's power.
+            The max function ensures force approaches zero asymptotically rather than going negative.
+            This is the Matthew Effect in mathematical form.
+        </p>
         <h4>Gap Acceleration</h4>
-        <KatexBlock Latex="\frac{d}{dt}(F_H - F_L) > 0 \quad \text{and} \quad \frac{d^2}{dt^2}(F_H - F_L) > 0 \qquad (16, 16a)" />
+        <KatexBlock Latex="\frac{d}{dt}(F_H - F_L) = \gamma \cdot M \cdot F_H + \beta \cdot M > 0 \qquad (16)" />
+        <KatexBlock Latex="\frac{d^2}{dt^2}(F_H - F_L) > 0 \qquad (16a)" />
+        <p>
+            Equation (16) says the gap always widens (both terms on the right are positive).
+            Equation (16a) says the rate of widening itself increases over time, because F_H
+            is growing from Eq (15a). The gap does not just widen; it widens faster over time.
+        </p>
         <h4>Connections</h4>
         <ul>
-            <li>Tipping point Eq (14)</li>
-            <li>Barbell effect Eq (6)</li>
-            <li>Inequality accelerant</li>
+            <li>Tipping point: <strong>Eq (14)</strong></li>
+            <li>Barbell effect: <strong>Eq (6)</strong></li>
+            <li>Cohort discontinuity: <strong>Eq (32)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Generational Step-Down — Eq (32) + (15a) ─── *@
+@* ─── Chart 2: Sensitivity Analysis — Eq (15a-b) parameters ─── *@
+<div id="divergence-chart-2">
+<ChartCard Title="Parameter Sensitivity — Eq (15a-b)"
+           Description="How each parameter affects the final gap at t=20.">
+    <ChildContent>
+        <LineChart Series="@_sensitivitySeries"
+                   XLabel="Parameter Value (normalized 0-1)"
+                   YLabel="Final Gap at t=20"
+                   XMin="0" XMax="1"
+                   YMin="0"
+                   ShowGrid="true"
+                   Markers="@_sensitivityMarkers"
+                   HighlightSeriesIndices="@SensitivityHighlight" />
+        <p class="chart-readout">
+            Current gap: <strong>@_finalGap.ToString("F1")</strong>
+            &ensp;|&ensp;Most sensitive: <strong>@_mostSensitiveParam</strong>
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Each curve sweeps one parameter from min to max while holding others at current values.
+            Dashed curves (&gamma;, M) correspond to the compounding engine; they drive most of the divergence.
+            Dots mark each parameter's current value.
+        </p>
+    </ChildContent>
+    <TheoryContent>
+        <h4>In Plain Language</h4>
+        <p>
+            This chart reveals which parameters have the most leverage over the divergence outcome.
+            The compounding parameters (&gamma; and M) dominate because they appear multiplicatively
+            in Eq (15a). Small changes in &gamma; or M produce large changes in the final gap,
+            while &alpha; and S_0 (additive terms) have more modest effects.
+        </p>
+        <h4>Reading the Charts</h4>
+        <p>
+            Steeper curves mean higher sensitivity. The dashed curves are the ones that also
+            drive the compounding engine in Eq (15a). The dots mark where each parameter sits
+            currently. If a dot is at the steep part of its curve, small slider changes will
+            produce large gap changes.
+        </p>
+        <h4>Connections</h4>
+        <ul>
+            <li>Compounding engine: <strong>Eq (15a)</strong></li>
+            <li>Tipping point sensitivity: <strong>Eq (14)</strong></li>
+        </ul>
+    </TheoryContent>
+</ChartCard>
+</div>
+
+<p class="chart-readout" style="font-size: 0.85em; opacity: 0.7; text-align: center; margin: 0.5rem 0 1rem;">
+    The generational chart below shows how Eq (32) initial conditions feed into Eq (15a) trajectories.
+</p>
+
+@* ─── Chart 3: Generational Step-Down — Eq (32) + (15a) ─── *@
+<div id="divergence-chart-3">
 <ChartCard Title="Generational Step-Down — Eq (32) + (15a)"
            Description="Four cohorts start from different InitialForce values (varying S_avail), then evolve via Eq 15a.">
     <ChildContent>
@@ -74,53 +203,139 @@
                    YLabel="Force (F)"
                    XMin="0" XMax="20"
                    YMin="0"
-                   ShowGrid="true" />
+                   ShowGrid="true"
+                   Markers="@_genMarkers" />
+        <p class="chart-readout">
+            Cohort ceilings: @string.Join(" | ", _genCeilings.Select((c, i) => $"S={_genSAvails[i]:F0}: F₀={c:F1}"))
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Each cohort's starting force is set by Eq (32), then evolves via Eq (15a).
+            Later cohorts (lower S_avail) start lower and never catch earlier ones.
+            The step-down between cohorts may be permanent.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>In Plain Language</h4>
-        <p>The cohort discontinuity adds a generational dimension to the accelerating gap. The between-cohort gap may be permanent because it reflects different starting conditions (Eq 32) rather than different effort levels. As the pre-LLM cohort ages out, they're replaced by members whose force ceiling is permanently lower. This interacts with tacit knowledge transmission — not only is W(t) declining (Eq 12b), but the juniors who do share work have less force to absorb what they're exposed to.</p>
+        <p>
+            The cohort discontinuity adds a generational dimension to the accelerating gap.
+            The between-cohort gap may be permanent, because it reflects different starting conditions
+            (Eq 32) rather than different effort levels. As the pre-LLM cohort ages out, they are
+            replaced by members whose force ceiling is permanently lower. This interacts with tacit
+            knowledge transmission: not only is W(t) declining (Eq 12b), but the juniors who do share
+            work have less force to absorb what they are exposed to.
+        </p>
+        <h4>Reading the Charts</h4>
+        <p>
+            Four cohorts enter at different S_avail levels. The color coding goes from red (least
+            struggle available) to blue (most). All follow Eq (15a) dynamics, but starting positions
+            differ. The vertical spread at t=0 is the cohort discontinuity; the widening spread
+            over time is the compounding engine at work.
+        </p>
         <h4>Connections</h4>
         <ul>
-            <li>Cohort discontinuity Eq (32)</li>
-            <li>Tacit knowledge Eq (12a)</li>
-            <li>Pipeline break Eq (13)</li>
+            <li>Cohort discontinuity: <strong>Eq (32)</strong></li>
+            <li>Tacit knowledge: <strong>Eq (12a)</strong></li>
+            <li>Pipeline break: <strong>Eq (13)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
+@* ─── Slider Panel ─── *@
 <FloatingSliderPanel Visible="true" Title="Divergence Parameters" DefaultY="100">
-    <div class="slider-group-header">Eq (32): Cohort Force Ceiling</div>
-    <ParameterSlider Label="F_max" Min="1" Max="10" Step="0.5"
-                     Value="@_forceMax"
-                     ValueChanged="@OnForceMaxChanged" />
-    <ParameterSlider Label="S_pre (pre-existing struggle)" Min="0" Max="10" Step="0.5"
-                     Value="@_strugglePre"
-                     ValueChanged="@OnStrugglePreChanged" />
-    <ParameterSlider Label="ρ (exponent)" Min="0.1" Max="2" Step="0.1"
-                     Value="@_rho"
-                     ValueChanged="@OnRhoChanged" />
-    <div class="slider-group-header">Eq (15a-b): Divergence Trajectories</div>
-    <ParameterSlider Label="α (struggle coeff)" Min="0" Max="1" Step="0.01"
-                     Value="@_divAlpha" ValueChanged="@OnDivAlphaChanged" />
-    <ParameterSlider Label="S₀ (base struggle)" Min="0" Max="5" Step="0.1"
-                     Value="@_divStruggle0" ValueChanged="@OnDivStruggle0Changed" />
-    <ParameterSlider Label="γ (engagement rate)" Min="0" Max="1" Step="0.01"
-                     Value="@_divGamma" ValueChanged="@OnDivGammaChanged" />
-    <ParameterSlider Label="M (model quality)" Min="0.5" Max="5" Step="0.1"
-                     Value="@_divM" ValueChanged="@OnDivMChanged" />
-    <ParameterSlider Label="β (decay)" Min="0" Max="1" Step="0.01"
-                     Value="@_divBeta" ValueChanged="@OnDivBetaChanged" />
-    <ParameterSlider Label="κ (floor rate)" Min="0" Max="2" Step="0.01"
-                     Value="@_divKappa" ValueChanged="@OnDivKappaChanged" />
-    <ParameterSlider Label="dt (time step)" Min="0.01" Max="0.5" Step="0.01"
-                     Value="@_divDt" ValueChanged="@OnDivDtChanged" />
-    <div class="slider-group-header">Eq (32) + (15a): Generational Step-Down</div>
-    <ParameterSlider Label="F_max (gen)" Min="1" Max="10" Step="0.5"
-                     Value="@_genForceMax" ValueChanged="@OnGenForceMaxChanged" />
-    <ParameterSlider Label="S_pre (gen)" Min="0.1" Max="10" Step="0.1"
-                     Value="@_genStrugglePre" ValueChanged="@OnGenStrugglePreChanged" />
-    <ParameterSlider Label="ρ (gen exponent)" Min="0.1" Max="2" Step="0.1"
-                     Value="@_genRho" ValueChanged="@OnGenRhoChanged" />
+    <div class="slider-context-label">
+        @if (_showAllSliders)
+        {
+            <span>Showing all sliders</span>
+        }
+        else if (_activeChartIndex >= 0 && _activeChartIndex < ChartNames.Length)
+        {
+            <span>Sliders for: @ChartNames[_activeChartIndex]</span>
+        }
+        &ensp;
+        <button class="slider-show-all-toggle" @onclick="ToggleShowAll">
+            @(_showAllSliders ? "Auto-filter" : "Show all")
+        </button>
+    </div>
+
+    @if (IsGroupVisible(0))
+    {
+        <div class="slider-group-header">Eq (32): Cohort Force Ceiling</div>
+    }
+    <div class="slider-slot @SlotClass("fmax")">
+        <ParameterSlider Label="F_max" Min="1" Max="10" Step="0.5"
+                         Value="@_forceMax" ValueChanged="@OnForceMaxChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("savail")">
+        <ParameterSlider Label="S_avail (crosshair)" Min="0.1" Max="10" Step="0.1"
+                         Value="@_ceilingSAvailCrosshair" ValueChanged="@OnCeilingSAvailChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("spre")">
+        <ParameterSlider Label="S_pre (pre-existing struggle)" Min="0.1" Max="10" Step="0.5"
+                         Value="@_strugglePre" ValueChanged="@OnStrugglePreChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("rho")">
+        <ParameterSlider Label="ρ (exponent)" Min="0.1" Max="2" Step="0.1"
+                         Value="@_rho" ValueChanged="@OnRhoChanged" />
+    </div>
+
+    @if (IsGroupVisible(1))
+    {
+        <div class="slider-group-header">Eq (15a-b): Divergence Trajectories</div>
+    }
+    <div class="slider-slot @SlotClass("fh0")">
+        <ParameterSlider Label="F_H₀ (initial high)" Min="1" Max="20" Step="0.5"
+                         Value="@_divFH0" ValueChanged="@OnDivFH0Changed" />
+    </div>
+    <div class="slider-slot @SlotClass("fl0")">
+        <ParameterSlider Label="F_L₀ (initial low)" Min="0.5" Max="10" Step="0.5"
+                         Value="@_divFL0" ValueChanged="@OnDivFL0Changed" />
+    </div>
+    <div class="slider-slot @SlotClass("alpha")">
+        <ParameterSlider Label="α (struggle coeff)" Min="0" Max="1" Step="0.01"
+                         Value="@_divAlpha" ValueChanged="@OnDivAlphaChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("s0")">
+        <ParameterSlider Label="S₀ (base struggle)" Min="0" Max="5" Step="0.1"
+                         Value="@_divStruggle0" ValueChanged="@OnDivStruggle0Changed" />
+    </div>
+    <div class="slider-slot @SlotClass("gamma")">
+        <ParameterSlider Label="γ (engagement rate)" Min="0" Max="1" Step="0.01"
+                         Value="@_divGamma" ValueChanged="@OnDivGammaChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("divM")">
+        <ParameterSlider Label="M (model quality)" Min="0.5" Max="5" Step="0.1"
+                         Value="@_divM" ValueChanged="@OnDivMChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("beta")">
+        <ParameterSlider Label="β (decay)" Min="0" Max="1" Step="0.01"
+                         Value="@_divBeta" ValueChanged="@OnDivBetaChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("kappa")">
+        <ParameterSlider Label="κ (floor rate)" Min="0" Max="2" Step="0.01"
+                         Value="@_divKappa" ValueChanged="@OnDivKappaChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("dt")">
+        <ParameterSlider Label="dt (time step)" Min="0.01" Max="0.5" Step="0.01"
+                         Value="@_divDt" ValueChanged="@OnDivDtChanged" />
+    </div>
+
+    @if (IsGroupVisible(2))
+    {
+        <div class="slider-group-header">Eq (32) + (15a): Generational Step-Down</div>
+    }
+    <div class="slider-slot @SlotClass("gfmax")">
+        <ParameterSlider Label="F_max (gen)" Min="1" Max="10" Step="0.5"
+                         Value="@_genForceMax" ValueChanged="@OnGenForceMaxChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("gspre")">
+        <ParameterSlider Label="S_pre (gen)" Min="0.1" Max="10" Step="0.1"
+                         Value="@_genStrugglePre" ValueChanged="@OnGenStrugglePreChanged" />
+    </div>
+    <div class="slider-slot @SlotClass("grho")">
+        <ParameterSlider Label="ρ (gen exponent)" Min="0.1" Max="2" Step="0.1"
+                         Value="@_genRho" ValueChanged="@OnGenRhoChanged" />
+    </div>
 </FloatingSliderPanel>
 
 @code {
@@ -128,9 +343,21 @@
     private double _forceMax = 8.0;
     private double _strugglePre = 5.0;
     private double _rho = 1.0;
-    private IReadOnlyList<ChartSeries> _ceilingSeries = Array.Empty<ChartSeries>();
+    private double _ceilingSAvailCrosshair = 5.0;
+
+    // HeatMap data
+    private double[,] _ceilingHeatData = new double[0, 0];
+    private double[] _ceilingHeatXValues = Array.Empty<double>();
+    private double[] _ceilingHeatYValues = Array.Empty<double>();
+    private IReadOnlyList<string>? _ceilingHeatTooltip;
+    private double _ceilingHeatColorMax = 10.0;
+
+    // Radar
+    private IReadOnlyList<RadarAxis> _ceilingRadarAxes = Array.Empty<RadarAxis>();
 
     // ─── Divergence Trajectories (Eq 15a-b, 16, 16a) ───
+    private double _divFH0 = 8.0;
+    private double _divFL0 = 3.0;
     private double _divAlpha = 0.3;
     private double _divStruggle0 = 2.0;
     private double _divGamma = 0.2;
@@ -139,45 +366,181 @@
     private double _divKappa = 0.5;
     private double _divDt = 0.1;
     private IReadOnlyList<ChartSeries> _divSeries = Array.Empty<ChartSeries>();
+    private IReadOnlyList<ChartMarker> _divMarkers = Array.Empty<ChartMarker>();
+    private IReadOnlyList<RadarAxis> _divRadarAxes = Array.Empty<RadarAxis>();
     private bool _gapWidening;
     private bool _gapAccelerating;
+    private double _finalFH;
+    private double _finalFL;
+    private double _finalGap;
+
+    // ─── Sensitivity Analysis ───
+    private IReadOnlyList<ChartSeries> _sensitivitySeries = Array.Empty<ChartSeries>();
+    private IReadOnlyList<ChartMarker> _sensitivityMarkers = Array.Empty<ChartMarker>();
+    private static readonly IReadOnlySet<int> SensitivityHighlight = new HashSet<int> { 2, 3 }; // gamma, M
+    private string _mostSensitiveParam = "";
 
     // ─── Generational Step-Down (Eq 32 + 15a) ───
     private double _genForceMax = 8.0;
     private double _genStrugglePre = 5.0;
     private double _genRho = 1.0;
     private IReadOnlyList<ChartSeries> _genSeries = Array.Empty<ChartSeries>();
+    private IReadOnlyList<ChartMarker> _genMarkers = Array.Empty<ChartMarker>();
+    private readonly double[] _genSAvails = { 2.0, 4.0, 6.0, 8.0 };
+    private double[] _genCeilings = Array.Empty<double>();
 
-    protected override void OnInitialized()
+    // ─── Scroll-aware slider state ───
+    private int _activeChartIndex = 0;
+    private bool _showAllSliders;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<DivergencePage>? _dotNetRef;
+
+    private static readonly string[] ChartNames =
+    {
+        "Cohort Force Ceiling",
+        "Divergence Trajectories",
+        "Parameter Sensitivity",
+        "Generational Step-Down"
+    };
+
+    private static readonly string[] ChartElementIds =
+    {
+        "divergence-chart-0", "divergence-chart-1",
+        "divergence-chart-2", "divergence-chart-3"
+    };
+
+    // Per-chart slider key sets
+    private static readonly HashSet<string>[] ChartSliderKeys =
+    {
+        new() { "fmax", "savail", "spre", "rho" },
+        new() { "fh0", "fl0", "alpha", "s0", "gamma", "divM", "beta", "kappa", "dt" },
+        new() { "alpha", "s0", "gamma", "divM", "beta", "kappa", "fh0", "fl0" },
+        new() { "gfmax", "gspre", "grho", "alpha", "s0", "gamma", "divM" },
+    };
+
+    private static readonly string[][] GroupKeys =
+    {
+        new[] { "fmax", "savail", "spre", "rho" },
+        new[] { "fh0", "fl0", "alpha", "s0", "gamma", "divM", "beta", "kappa", "dt" },
+        new[] { "gfmax", "gspre", "grho" },
+    };
+
+    private bool IsSliderVisible(string key) =>
+        _showAllSliders ||
+        (_activeChartIndex >= 0 && _activeChartIndex < ChartSliderKeys.Length &&
+         ChartSliderKeys[_activeChartIndex].Contains(key));
+
+    private bool IsGroupVisible(int group) =>
+        _showAllSliders || GroupKeys[group].Any(IsSliderVisible);
+
+    private string SlotClass(string key) => IsSliderVisible(key) ? "" : "hidden";
+
+    private void ToggleShowAll() => _showAllSliders = !_showAllSliders;
+
+    [JSInvokable]
+    public void OnChartScrolled(int index)
+    {
+        if (index == _activeChartIndex) return;
+        _activeChartIndex = index;
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ─── Lifecycle ───
+    protected override void OnInitialized() => Recalculate();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _jsModule.InvokeVoidAsync(
+                    "initChartObserver", _dotNetRef, "OnChartScrolled", ChartElementIds);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("destroyChartObserver");
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
+    }
+
+    // ─── Master recalculation ───
+    private void Recalculate()
     {
         RecalcCeiling();
         RecalcDivergence();
+        RecalcSensitivity();
         RecalcGenerational();
     }
 
-    // ─── Cohort Force Ceiling ───
+    // ─── Readout helpers ───
+    private double ComputeCurrentCeiling() =>
+        DivergenceTrajectories.InitialForce(_forceMax, _ceilingSAvailCrosshair, _strugglePre, _rho);
+
+    // ─── Cohort Force Ceiling HeatMap ───
     private void RecalcCeiling()
     {
-        var points = new List<DataPoint>();
-        for (double sAvail = 0.1; sAvail <= 10.0; sAvail += 0.1)
+        _ceilingHeatColorMax = _forceMax * Math.Pow(10.0 / Math.Max(_strugglePre, 0.1), Math.Max(_rho, 0.1));
+        _ceilingHeatColorMax = Math.Max(_ceilingHeatColorMax, 1.0);
+
+        const int steps = 25;
+        _ceilingHeatXValues = new double[steps];
+        _ceilingHeatYValues = new double[steps];
+        _ceilingHeatData = new double[steps, steps];
+
+        for (int i = 0; i < steps; i++)
         {
-            points.Add(new DataPoint(sAvail, DivergenceTrajectories.InitialForce(_forceMax, sAvail, _strugglePre, _rho)));
+            _ceilingHeatXValues[i] = 0.1 + i * 9.9 / (steps - 1); // S_avail 0.1..10
+            _ceilingHeatYValues[i] = 0.1 + i * 1.9 / (steps - 1); // rho 0.1..2.0
         }
 
-        _ceilingSeries = new List<ChartSeries>
+        for (int r = 0; r < steps; r++)
+            for (int c = 0; c < steps; c++)
+                _ceilingHeatData[r, c] = DivergenceTrajectories.InitialForce(
+                    _forceMax, _ceilingHeatXValues[c], _strugglePre, _ceilingHeatYValues[r]);
+
+        var currentCeiling = ComputeCurrentCeiling();
+        _ceilingHeatTooltip = new List<string>
         {
-            new("F_init — Eq (32)", points, "#2563eb", 2.0)
+            "Your current position",
+            $"F_init = {currentCeiling:F2}",
+            $"S_avail = {_ceilingSAvailCrosshair:F1}, \u03c1 = {_rho:F1}",
+            $"F_max = {_forceMax:F1}, S_pre = {_strugglePre:F1}",
+            $"Ratio: {(_ceilingSAvailCrosshair / Math.Max(_strugglePre, 0.01)):F2}"
+        };
+
+        _ceilingRadarAxes = new List<RadarAxis>
+        {
+            new("F_max", _forceMax, 10.0, new List<string> { "Maximum Force", $"Value: {_forceMax:F1} / 10", "Ceiling under ideal conditions" }),
+            new("S_avail", _ceilingSAvailCrosshair, 10.0, new List<string> { "Struggle Available", $"Value: {_ceilingSAvailCrosshair:F1} / 10", "Heatmap X-axis" }),
+            new("S_pre", _strugglePre, 10.0, new List<string> { "Pre-LLM Struggle", $"Value: {_strugglePre:F1} / 10", "Baseline normalizer" }),
+            new("\u03c1", _rho, 2.0, new List<string> { "Elasticity (\u03c1)", $"Value: {_rho:F1} / 2.0", "Heatmap Y-axis; controls curvature" })
         };
     }
 
-    private void OnForceMaxChanged(double val) { _forceMax = val; RecalcCeiling(); }
-    private void OnStrugglePreChanged(double val) { _strugglePre = val; RecalcCeiling(); }
-    private void OnRhoChanged(double val) { _rho = val; RecalcCeiling(); }
+    private void OnForceMaxChanged(double val) { _forceMax = val; Recalculate(); }
+    private void OnStrugglePreChanged(double val) { _strugglePre = val; Recalculate(); }
+    private void OnRhoChanged(double val) { _rho = val; Recalculate(); }
+    private void OnCeilingSAvailChanged(double val) { _ceilingSAvailCrosshair = val; Recalculate(); }
 
     // ─── Divergence Trajectories ───
     private void RecalcDivergence()
     {
-        double[] y0 = { 8.0, 3.0 };
+        double[] y0 = { _divFH0, _divFL0 };
         double tStart = 0.0, tEnd = 20.0;
 
         double[][] result = Integration.ForwardEulerSystem(y0, tStart, tEnd, _divDt,
@@ -200,71 +563,184 @@
             gapPts.Add(new DataPoint(time, result[0][i] - result[1][i]));
         }
 
+        int last = steps - 1;
+        _finalFH = result[0][last];
+        _finalFL = result[1][last];
+        _finalGap = _finalFH - _finalFL;
+
         _divSeries = new List<ChartSeries>
         {
-            new("F_H (high) — Eq (15a)", highPts, "#2563eb", 2.0),
-            new("F_L (low) — Eq (15b)", lowPts, "#dc2626", 2.0),
-            new("Gap (F_H − F_L)", gapPts, "#9333ea", 1.5)
+            new("F_H (high) \u2014 Eq (15a)", highPts, "#2563eb", 2.0),
+            new("F_L (low) \u2014 Eq (15b)", lowPts, "#dc2626", 2.0),
+            new("Gap (F_H \u2212 F_L)", gapPts, "#9333ea", 1.5)
+        };
+
+        _divMarkers = new List<ChartMarker>
+        {
+            new(20.0, _finalFH, "#2563eb", null, new List<string> { "F_H (high-force)", $"F_H(20) = {_finalFH:F1}", $"Started at {_divFH0:F1}" }),
+            new(20.0, _finalFL, "#dc2626", null, new List<string> { "F_L (low-force)", $"F_L(20) = {_finalFL:F1}", $"Started at {_divFL0:F1}" }),
+            new(20.0, _finalGap, "#9333ea", null, new List<string> { "Gap", $"Gap = {_finalGap:F1}", $"Initial gap: {(_divFH0 - _divFL0):F1}" })
         };
 
         // Threshold indicators at final time step
-        int last = steps - 1;
         int prev = Math.Max(0, last - 1);
 
         double dfHighFinal = DivergenceTrajectories.DfHighDt(_divAlpha, _divStruggle0, _divGamma, _divM, result[0][last]);
         double dfLowFinal = DivergenceTrajectories.DfLowDt(_divAlpha, _divStruggle0, _divBeta, _divM, _divKappa, result[1][last]);
         _gapWidening = DivergenceTrajectories.IsGapWidening(dfHighFinal, dfLowFinal);
 
-        // Approximate second derivatives using finite differences
         double dfHighPrev = DivergenceTrajectories.DfHighDt(_divAlpha, _divStruggle0, _divGamma, _divM, result[0][prev]);
         double dfLowPrev = DivergenceTrajectories.DfLowDt(_divAlpha, _divStruggle0, _divBeta, _divM, _divKappa, result[1][prev]);
         double d2HighDt2 = (dfHighFinal - dfHighPrev) / _divDt;
         double d2LowDt2 = (dfLowFinal - dfLowPrev) / _divDt;
         _gapAccelerating = DivergenceTrajectories.IsGapAccelerating(d2HighDt2, d2LowDt2);
+
+        // Radar: trajectory parameters
+        _divRadarAxes = new List<RadarAxis>
+        {
+            new("\u03b1", _divAlpha, 1.0, new List<string> { "Struggle coefficient (\u03b1)", $"Value: {_divAlpha:F2} / 1.0", "Additive learning rate" }),
+            new("S\u2080", _divStruggle0, 5.0, new List<string> { "Base struggle (S\u2080)", $"Value: {_divStruggle0:F1} / 5.0", "Non-LLM experience rate" }),
+            new("\u03b3", _divGamma, 1.0, new List<string> { "Engagement rate (\u03b3)", $"Value: {_divGamma:F2} / 1.0", "Compounding engine coefficient" }),
+            new("M", _divM, 5.0, new List<string> { "Model quality (M)", $"Value: {_divM:F1} / 5.0", "Drives both compounding and drag" }),
+            new("\u03b2", _divBeta, 1.0, new List<string> { "Decay coefficient (\u03b2)", $"Value: {_divBeta:F2} / 1.0", "Drag term for low-force" }),
+            new("\u03ba", _divKappa, 2.0, new List<string> { "Floor rate (\u03ba)", $"Value: {_divKappa:F2} / 2.0", "Asymptotic decay bound" })
+        };
     }
 
-    private void OnDivAlphaChanged(double v) { _divAlpha = v; RecalcDivergence(); }
-    private void OnDivStruggle0Changed(double v) { _divStruggle0 = v; RecalcDivergence(); }
-    private void OnDivGammaChanged(double v) { _divGamma = v; RecalcDivergence(); }
-    private void OnDivMChanged(double v) { _divM = v; RecalcDivergence(); }
-    private void OnDivBetaChanged(double v) { _divBeta = v; RecalcDivergence(); }
-    private void OnDivKappaChanged(double v) { _divKappa = v; RecalcDivergence(); }
-    private void OnDivDtChanged(double v) { _divDt = v; RecalcDivergence(); }
+    private void OnDivFH0Changed(double v) { _divFH0 = v; Recalculate(); }
+    private void OnDivFL0Changed(double v) { _divFL0 = v; Recalculate(); }
+    private void OnDivAlphaChanged(double v) { _divAlpha = v; Recalculate(); }
+    private void OnDivStruggle0Changed(double v) { _divStruggle0 = v; Recalculate(); }
+    private void OnDivGammaChanged(double v) { _divGamma = v; Recalculate(); }
+    private void OnDivMChanged(double v) { _divM = v; Recalculate(); }
+    private void OnDivBetaChanged(double v) { _divBeta = v; Recalculate(); }
+    private void OnDivKappaChanged(double v) { _divKappa = v; Recalculate(); }
+    private void OnDivDtChanged(double v) { _divDt = v; Recalculate(); }
+
+    // ─── Sensitivity Analysis ───
+    private void RecalcSensitivity()
+    {
+        // Sweep each parameter from its min to max, compute final gap
+        var paramDefs = new (string Name, double Min, double Max, double Current, string Color, Func<double, double> GapAt)[]
+        {
+            ("\u03b1", 0.0, 1.0, _divAlpha, "#10b981",
+                v => ComputeFinalGap(v, _divStruggle0, _divGamma, _divM, _divBeta, _divKappa)),
+            ("S\u2080", 0.0, 5.0, _divStruggle0, "#f59e0b",
+                v => ComputeFinalGap(_divAlpha, v, _divGamma, _divM, _divBeta, _divKappa)),
+            ("\u03b3", 0.0, 1.0, _divGamma, "#2563eb",
+                v => ComputeFinalGap(_divAlpha, _divStruggle0, v, _divM, _divBeta, _divKappa)),
+            ("M", 0.5, 5.0, _divM, "#dc2626",
+                v => ComputeFinalGap(_divAlpha, _divStruggle0, _divGamma, v, _divBeta, _divKappa)),
+            ("\u03b2", 0.0, 1.0, _divBeta, "#9333ea",
+                v => ComputeFinalGap(_divAlpha, _divStruggle0, _divGamma, _divM, v, _divKappa)),
+            ("\u03ba", 0.0, 2.0, _divKappa, "#6b7280",
+                v => ComputeFinalGap(_divAlpha, _divStruggle0, _divGamma, _divM, _divBeta, v)),
+        };
+
+        var series = new List<ChartSeries>();
+        var markers = new List<ChartMarker>();
+        double maxSensitivity = 0;
+        string mostSensitive = "";
+
+        for (int p = 0; p < paramDefs.Length; p++)
+        {
+            var def = paramDefs[p];
+            var pts = new List<DataPoint>();
+            const int sweepSteps = 50;
+
+            for (int i = 0; i <= sweepSteps; i++)
+            {
+                double normalized = (double)i / sweepSteps;
+                double paramVal = def.Min + normalized * (def.Max - def.Min);
+                double gap = def.GapAt(paramVal);
+                pts.Add(new DataPoint(normalized, gap));
+            }
+
+            series.Add(new ChartSeries($"{def.Name}", pts, def.Color, 2.0));
+
+            // Current value marker
+            double currentNorm = (def.Max - def.Min) > 0 ? (def.Current - def.Min) / (def.Max - def.Min) : 0.5;
+            double currentGap = def.GapAt(def.Current);
+            markers.Add(new ChartMarker(currentNorm, currentGap, def.Color, null, new List<string>
+            {
+                def.Name,
+                $"Value: {def.Current:F2} (range {def.Min:F1}\u2013{def.Max:F1})",
+                $"Gap at current: {currentGap:F1}"
+            }));
+
+            // Track sensitivity (range of gap values)
+            double gapAtMin = def.GapAt(def.Min);
+            double gapAtMax = def.GapAt(def.Max);
+            double sensitivity = Math.Abs(gapAtMax - gapAtMin);
+            if (sensitivity > maxSensitivity)
+            {
+                maxSensitivity = sensitivity;
+                mostSensitive = def.Name;
+            }
+        }
+
+        _sensitivitySeries = series;
+        _sensitivityMarkers = markers;
+        _mostSensitiveParam = mostSensitive;
+    }
+
+    private double ComputeFinalGap(double alpha, double s0, double gamma, double m, double beta, double kappa)
+    {
+        double[] y0 = { _divFH0, _divFL0 };
+        double dt = 0.2; // coarser for sensitivity sweep performance
+        double[][] result = Integration.ForwardEulerSystem(y0, 0.0, 20.0, dt,
+            (t, y) => new[]
+            {
+                DivergenceTrajectories.DfHighDt(alpha, s0, gamma, m, y[0]),
+                DivergenceTrajectories.DfLowDt(alpha, s0, beta, m, kappa, y[1])
+            });
+        int last = result[0].Length - 1;
+        return result[0][last] - result[1][last];
+    }
 
     // ─── Generational Step-Down ───
     private void RecalcGenerational()
     {
-        // Use the same divergence params for the trajectory integration (alpha, struggle0, gamma, m)
         double alpha = _divAlpha;
         double struggle0 = _divStruggle0;
         double gamma = _divGamma;
         double m = _divM;
 
-        double[] sAvailValues = { 2.0, 4.0, 6.0, 8.0 };
         string[] colors = { "#dc2626", "#f59e0b", "#10b981", "#2563eb" };
         double tStart = 0.0, tEnd = 20.0, dt = 0.1;
 
         var series = new List<ChartSeries>();
+        var markers = new List<ChartMarker>();
+        var ceilings = new double[_genSAvails.Length];
 
-        for (int g = 0; g < sAvailValues.Length; g++)
+        for (int g = 0; g < _genSAvails.Length; g++)
         {
-            double fInit = DivergenceTrajectories.InitialForce(_genForceMax, sAvailValues[g], _genStrugglePre, _genRho);
+            double fInit = DivergenceTrajectories.InitialForce(_genForceMax, _genSAvails[g], _genStrugglePre, _genRho);
+            ceilings[g] = fInit;
             double[] trajectory = Integration.ForwardEuler(fInit, tStart, tEnd, dt,
                 (t, f) => DivergenceTrajectories.DfHighDt(alpha, struggle0, gamma, m, f));
 
             var pts = new List<DataPoint>(trajectory.Length);
             for (int i = 0; i < trajectory.Length; i++)
-            {
                 pts.Add(new DataPoint(tStart + i * dt, trajectory[i]));
-            }
 
-            series.Add(new ChartSeries($"S_avail={sAvailValues[g]:F0} (F₀={fInit:F1})", pts, colors[g], 2.0));
+            double finalVal = trajectory[trajectory.Length - 1];
+            series.Add(new ChartSeries($"S_avail={_genSAvails[g]:F0} (F\u2080={fInit:F1})", pts, colors[g], 2.0));
+            markers.Add(new ChartMarker(20.0, finalVal, colors[g], null, new List<string>
+            {
+                $"Cohort: S_avail={_genSAvails[g]:F0}",
+                $"F\u2080 = {fInit:F1} (Eq 32)",
+                $"F(20) = {finalVal:F1}",
+                $"Growth: {((finalVal / Math.Max(fInit, 0.01)) - 1):P0}"
+            }));
         }
 
         _genSeries = series;
+        _genMarkers = markers;
+        _genCeilings = ceilings;
     }
 
-    private void OnGenForceMaxChanged(double v) { _genForceMax = v; RecalcGenerational(); }
-    private void OnGenStrugglePreChanged(double v) { _genStrugglePre = v; RecalcGenerational(); }
-    private void OnGenRhoChanged(double v) { _genRho = v; RecalcGenerational(); }
+    private void OnGenForceMaxChanged(double v) { _genForceMax = v; Recalculate(); }
+    private void OnGenStrugglePreChanged(double v) { _genStrugglePre = v; Recalculate(); }
+    private void OnGenRhoChanged(double v) { _genRho = v; Recalculate(); }
 }

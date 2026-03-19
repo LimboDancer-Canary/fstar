@@ -144,10 +144,34 @@ public class EquationWiringTests : BunitContext
     [Fact]
     public void DivergencePage_Renders_ContainsLineChart()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<DivergencePage>();
 
         var polylines = cut.FindAll("svg.line-chart polyline");
         Assert.True(polylines.Count >= 1, "DivergencePage should render at least one polyline");
+    }
+
+    [Fact]
+    public void DivergencePage_Renders_ContainsHeatMap()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<DivergencePage>();
+
+        var heatSvg = cut.Find("svg.heat-map");
+        Assert.NotNull(heatSvg);
+
+        var rects = cut.FindAll("svg.heat-map rect");
+        Assert.True(rects.Count > 0, "DivergencePage HeatMap should render rect elements");
+    }
+
+    [Fact]
+    public void DivergencePage_Renders_ContainsRadarChart()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<DivergencePage>();
+
+        var markup = cut.Markup;
+        Assert.Contains("radar-chart", markup);
     }
 
     [Fact]

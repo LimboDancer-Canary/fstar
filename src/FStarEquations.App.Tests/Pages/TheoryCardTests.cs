@@ -60,4 +60,14 @@ public class TheoryCardTests : BunitContext
         var tabBars = cut.FindAll(".chart-card-tabs");
         Assert.True(tabBars.Count >= 4, $"Expected at least 4 tab bars but found {tabBars.Count}");
     }
+
+    [Fact]
+    public void DivergencePage_ChartCards_HaveTheoryTabs()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<DivergencePage>();
+
+        var tabBars = cut.FindAll(".chart-card-tabs");
+        Assert.True(tabBars.Count >= 4, $"Expected at least 4 tab bars but found {tabBars.Count}");
+    }
 }

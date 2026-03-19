@@ -108,4 +108,14 @@ public class SliderInteractionTests : BunitContext
         var sliders = cut.FindAll("input[type=range]");
         Assert.NotEmpty(sliders);
     }
+
+    [Fact]
+    public void DivergencePage_ClickPill_ShowsSliders()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<DivergencePage>();
+        cut.Find(".floating-slider-pill").Click();
+        var sliders = cut.FindAll("input[type=range]");
+        Assert.NotEmpty(sliders);
+    }
 }
