@@ -1,85 +1,471 @@
 @page "/sovereignty"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <PageTitle>Sovereignty — Eq (24), (24a)</PageTitle>
 
 <h1>Sovereignty — Eq (24), (24a)</h1>
 
 <blockquote>
-    A nation's capability is the product of its domestic force, its multiplier access, and the probability that access persists. Sovereignty requires maintaining a minimum viable force stock — if it falls below the threshold, no amount of imported multiplier can compensate.
+    A nation's capability is the product of its domestic force, its multiplier access, and the probability
+    that access persists. Sovereignty requires maintaining a minimum viable force stock; if it falls below
+    the threshold, no amount of imported multiplier can compensate.
 </blockquote>
 
-@* ─── Chart 1: Capability Bars — Eq (24) ─── *@
-<ChartCard Title="National Capability — Eq (24)"
-           Description="E[cap] = Σ Fᵢ · M · P(access) for varying access probability">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 1: National Capability HeatMap — Eq (24)                          *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="sovereignty-chart-0">
+<ChartCard Title="National Capability Surface"
+           Description="Eq (24): E[cap] = ΣFᵢ · M · P(access). Axes show M and P(access); workforce forces held at slider values.">
     <ChildContent>
-        <BarChart Bars="@_capabilityBars" XLabel="P(access)" YLabel="Capability" Width="500" Height="320" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <HeatMap Width="600" Height="400"
+                     XLabel="Multiplier (M)"
+                     YLabel="P(access)"
+                     Data="@_heatData"
+                     XValues="@_heatXValues"
+                     YValues="@_heatYValues"
+                     CrosshairX="@_capM"
+                     CrosshairY="@_capPAccess"
+                     CrosshairTooltip="@_heatTooltipLines"
+                     ColorScaleMin="0"
+                     ColorScaleMax="@_heatColorMax" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Workforce Profile</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_radarAxes"
+                            CenterLabel="@($"ΣF={Forces.Sum():F1}")" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Current capability: <strong>E[cap] = @ComputeCapability().ToString("F2")</strong>
+            &ensp;|&ensp;M=@_capM.ToString("F1")
+            &ensp;|&ensp;P(access)=@_capPAccess.ToString("F2")
+            &ensp;|&ensp;&Sigma;F=@Forces.Sum().ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Heatmap axes: M vs P(access). Workforce forces held at slider values.
+            Color scale fixed 0 to @_heatColorMax.ToString("F0") so force changes are visible.
+            The red crosshair marks your current slider values.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="E[\text{national capability}] = \sum_{i \in \text{workforce}} F_i \times M \times P(\text{access}) \qquad (24)" />
         <h4>In Plain Language</h4>
-        <p>A nation's expected technical capability is the sum of its workforce's force, amplified by the multiplier, discounted by the probability that access to the multiplier continues. If the multiplier is provided by a foreign entity subject to sanctions or regulation, P(access) &lt; 1. Countries that underinvest in education but expect AI to close the gap are making a category error: Eq (1) says you cannot multiply what isn't there.</p>
+        <p>A nation's expected technical capability is the sum of its workforce's force, amplified by the multiplier, discounted by the probability that access to the multiplier continues. If the multiplier is provided by a foreign entity subject to sanctions or regulation, P(access) &lt; 1, and the entire national capability is discounted accordingly. Countries that underinvest in education but expect AI to close the gap are making a category error: Eq (1) says you cannot multiply what isn't there.</p>
+        <h4>Reading the Charts</h4>
+        <p>The heatmap sweeps M and P(access) simultaneously while workforce forces are held at slider values. The red crosshair marks your current position on the surface. The radar chart beside it shows all workforce forces at once as a polygon; a balanced workforce fills the shape evenly, while a weak sector shows as a visible dent. The color scale is fixed so that changing individual forces produces visible color shifts.</p>
         <h4>The Mirror</h4>
         <p>Giving a nation of low-force workers access to a powerful mirror creates flattering reflections of shallow input, not capability.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Base model Eq (1)</li>
-            <li>Transfer Eq (26)</li>
-            <li>Provider investment Eq (3)</li>
+            <li>Base model: <strong>Eq (1)</strong></li>
+            <li>Transfer: <strong>Eq (26)</strong></li>
+            <li>Provider investment: <strong>Eq (3)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-@* ─── Chart 2: Resilience Gauge — Eq (24a) ─── *@
-<ChartCard Title="Sovereign Resilience — Eq (24a)"
-           Description="Σ Fᵢ ≥ minViable">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 2: Force Sensitivity — Eq (24) per-force sweep                    *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="sovereignty-chart-1">
+<ChartCard Title="Workforce Force Sensitivity"
+           Description="Eq (24): How national capability changes as each workforce force varies, with M and P(access) held at slider values.">
     <ChildContent>
-        <ThresholdIndicator Label="@_resilienceLabel" Passed="@_isResilient" />
+        <LineChart Width="600" Height="400"
+                   XLabel="Force Value (Fᵢ)"
+                   YLabel="National Capability"
+                   Series="@_sensitivitySeries"
+                   YMin="0"
+                   Markers="@_sensitivityMarkers"
+                   HighlightSeriesIndices="@SensitivityHighlight" />
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Each curve sweeps one workforce force while others stay fixed.
+            Dots mark current slider values. All curves are linear because Eq (24) sums forces additively.
+        </p>
+    </ChildContent>
+    <TheoryContent>
+        <h4>Why This Matters</h4>
+        <p>Unlike Eq (1) where forces combine multiplicatively, Eq (24) sums forces additively. Each force contributes independently to national capability. This means one weak force sector does not collapse the total, but it does reduce it proportionally. The slopes of all curves are identical (M &middot; P(access)) because each force contributes equally per unit.</p>
+        <h4>Reading the Chart</h4>
+        <p>All curves have the same slope because the equation treats each force symmetrically. The dots mark current slider values. The vertical spread shows the workforce profile: closely-spaced dots mean a balanced workforce, widely-spaced dots mean some sectors are strong while others are weak.</p>
+    </TheoryContent>
+</ChartCard>
+</div>
+
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Chart 3: Resilience Gauge + Capability Bars — Eq (24a)                  *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="sovereignty-chart-2">
+<ChartCard Title="Sovereign Resilience — Eq (24a)"
+           Description="ΣFᵢ ≥ minViable. The workforce must be viable without the multiplier.">
+    <ChildContent>
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <div>
+                <BarChart Bars="@_resilienceBars" XLabel="P(access)" YLabel="Capability" Width="500" Height="320" />
+                <div style="margin-top: 8px; padding: 8px 12px; border-radius: 6px; text-align: center; font-weight: 600; background: @(_isResilient ? "#dcfce7" : "#fce7e7"); color: @(_isResilient ? "#166534" : "#991b1b");">
+                    @if (_isResilient)
+                    {
+                        <span>RESILIENT: &Sigma;F = @Forces.Sum().ToString("F1") &ge; @_resMinViable.ToString("F1")</span>
+                    }
+                    else
+                    {
+                        <span>VULNERABLE: &Sigma;F = @Forces.Sum().ToString("F1") &lt; @_resMinViable.ToString("F1")</span>
+                    }
+                </div>
+            </div>
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Resilience Profile</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_resilienceRadarAxes"
+                            FillColor="@(_isResilient ? "#22c55e" : "#dc2626")"
+                            StrokeColor="@(_isResilient ? "#166534" : "#991b1b")" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Unamplified force: <strong>&Sigma;F = @Forces.Sum().ToString("F1")</strong>
+            &ensp;|&ensp;Min viable: @_resMinViable.ToString("F1")
+            &ensp;|&ensp;Status: <strong>@(_isResilient ? "Resilient" : "Vulnerable")</strong>
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Bars show national capability at varying P(access). The rightmost bar (P=1.0)
+            shows full multiplier access. The threshold test (24a) checks the workforce at M=1, P=1:
+            can the nation function without the multiplier?
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\sum_{i} F_i \times 1 \geq \text{minimum viable capability} \qquad (24a)" />
         <h4>In Plain Language</h4>
-        <p>The sovereign resilience test: the workforce must be viable without the multiplier. If F has atrophied while relying on a foreign M, the nation fails this test precisely when it matters most — when access is cut. The atrophy dynamic, the cohort discontinuity, and the F→M transfer each threaten this condition from a different angle.</p>
+        <p>The sovereign resilience test: the workforce must be viable without the multiplier. If F has atrophied while relying on a foreign M, the nation fails this test precisely when it matters most, when access is cut. The atrophy dynamic, the cohort discontinuity, and the F&rarr;M transfer each threaten this condition from a different angle.</p>
+        <h4>Reading the Charts</h4>
+        <p>The bar chart shows capability at different access probabilities, using the current M and forces. The colored status bar shows whether the workforce passes the resilience test at M=1. The radar chart uses green when resilient, red when vulnerable, so you can see the workforce shape in context of the threshold. Drag forces down to see how quickly resilience erodes.</p>
         <h4>Connections</h4>
         <ul>
-            <li>National capability Eq (24)</li>
-            <li>Atrophy Eq (11)</li>
-            <li>Cohort discontinuity Eq (32)</li>
-            <li>Transfer Eq (26)</li>
+            <li>National capability: <strong>Eq (24)</strong></li>
+            <li>Atrophy: <strong>Eq (11)</strong></li>
+            <li>Cohort discontinuity: <strong>Eq (32)</strong></li>
+            <li>Transfer: <strong>Eq (26)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
+
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Slider Panel                                                            *@
+@* ──────────────────────────────────────────────────────────────────────── *@
 
 <FloatingSliderPanel Visible="true" Title="Sovereignty Parameters" DefaultY="100">
-    <div class="slider-group-header">Eq (24): National Capability</div>
-    <ParameterSlider Label="M" Min="0.5" Max="5" Step="0.1" Value="@_capM" ValueChanged="v => { _capM = v; }" />
-    <ParameterSlider Label="Force 1" Min="0" Max="10" Step="0.5" Value="@_capF1" ValueChanged="v => { _capF1 = v; }" />
-    <ParameterSlider Label="Force 2" Min="0" Max="10" Step="0.5" Value="@_capF2" ValueChanged="v => { _capF2 = v; }" />
-    <ParameterSlider Label="Force 3" Min="0" Max="10" Step="0.5" Value="@_capF3" ValueChanged="v => { _capF3 = v; }" />
-    <div class="slider-group-header">Eq (24a): Sovereign Resilience</div>
-    <ParameterSlider Label="Min Viable" Min="0" Max="50" Step="0.5" Value="@_resMinViable" ValueChanged="v => { _resMinViable = v; }" />
+    <div class="slider-context-label">
+        @if (_showAllSliders)
+        {
+            <span>Showing all sliders</span>
+        }
+        else if (_activeChartIndex >= 0 && _activeChartIndex < ChartNames.Length)
+        {
+            <span>Sliders for: @ChartNames[_activeChartIndex]</span>
+        }
+        &ensp;
+        <button class="slider-show-all-toggle" @onclick="ToggleShowAll">
+            @(_showAllSliders ? "Auto-filter" : "Show all")
+        </button>
+    </div>
+
+    @* Group 0: M & P(access) *@
+    @if (IsGroupVisible(0))
+    {
+        <div class="slider-group-header">Eq (24): Multiplier &amp; Access</div>
+    }
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1" Value="@_capM" ValueChanged="v => { _capM = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="P(access)" Min="0" Max="1" Step="0.01" Value="@_capPAccess" ValueChanged="v => { _capPAccess = v; Recalculate(); }" />
+    </div>
+
+    @* Group 1: Workforce Forces *@
+    @if (IsGroupVisible(1))
+    {
+        <div class="slider-group-header">Workforce Forces</div>
+    }
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="F1: Sector A" Min="0" Max="10" Step="0.1" Value="@_capF1" ValueChanged="v => { _capF1 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="F2: Sector B" Min="0" Max="10" Step="0.1" Value="@_capF2" ValueChanged="v => { _capF2 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="F3: Sector C" Min="0" Max="10" Step="0.1" Value="@_capF3" ValueChanged="v => { _capF3 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="F4: Sector D" Min="0" Max="10" Step="0.1" Value="@_capF4" ValueChanged="v => { _capF4 = v; Recalculate(); }" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="F5: Sector E" Min="0" Max="10" Step="0.1" Value="@_capF5" ValueChanged="v => { _capF5 = v; Recalculate(); }" />
+    </div>
+
+    @* Group 2: Resilience Threshold *@
+    @if (IsGroupVisible(2))
+    {
+        <div class="slider-group-header">Eq (24a): Resilience Threshold</div>
+    }
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="Min Viable Capability" Min="0" Max="50" Step="0.5" Value="@_resMinViable" ValueChanged="v => { _resMinViable = v; Recalculate(); }" />
+    </div>
 </FloatingSliderPanel>
 
 @code {
-    // Shared force sliders
-    private double _capM = 2;
-    private double _capF1 = 3;
-    private double _capF2 = 5;
-    private double _capF3 = 7;
+    // ── Scroll-aware slider state ──
+    private int _activeChartIndex = 0;
+    private bool _showAllSliders;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<SovereigntyPage>? _dotNetRef;
 
-    private double[] Forces => new[] { _capF1, _capF2, _capF3 };
+    private static readonly string[] ChartNames =
+    {
+        "Capability Surface",
+        "Force Sensitivity",
+        "Sovereign Resilience"
+    };
 
-    // ─── Chart 1: Capability Bars ───
-    private static readonly double[] AccessProbs = { 0.2, 0.4, 0.6, 0.8, 1.0 };
-    private IReadOnlyList<BarItem> _capabilityBars => AccessProbs
-        .Select(p => new BarItem($"P={p:F1}", Sovereignty.NationalCapability(Forces, _capM, p)))
-        .ToList();
+    // Per-chart: which slider groups (indices) are visible
+    // Group 0 = M & P(access), Group 1 = Workforce Forces, Group 2 = Resilience
+    private static readonly HashSet<int>[] ChartVisibleGroups =
+    {
+        new() { 0, 1 },    // Chart 0: HeatMap + Radar
+        new() { 0, 1 },    // Chart 1: Sensitivity
+        new() { 1, 2 },    // Chart 2: Resilience
+    };
 
-    // ─── Chart 2: Resilience Gauge ───
-    private double _resMinViable = 10;
-    private bool _isResilient => Sovereignty.IsSovereignResilient(Forces, _resMinViable);
-    private string _resilienceLabel => _isResilient
-        ? $"Resilient: ΣF = {Forces.Sum():F1} >= {_resMinViable:F1}"
-        : $"Vulnerable: ΣF = {Forces.Sum():F1} < {_resMinViable:F1}";
+    private bool IsGroupVisible(int groupIndex) =>
+        _showAllSliders ||
+        (_activeChartIndex >= 0 && _activeChartIndex < ChartVisibleGroups.Length &&
+         ChartVisibleGroups[_activeChartIndex].Contains(groupIndex));
+
+    private string GroupSlotClass(int groupIndex) => IsGroupVisible(groupIndex) ? "" : "hidden";
+
+    private void ToggleShowAll() => _showAllSliders = !_showAllSliders;
+
+    private static readonly string[] ChartElementIds =
+    {
+        "sovereignty-chart-0", "sovereignty-chart-1", "sovereignty-chart-2"
+    };
+
+    [JSInvokable]
+    public void OnChartScrolled(int index)
+    {
+        if (index == _activeChartIndex) return;
+        _activeChartIndex = index;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _jsModule.InvokeVoidAsync(
+                    "initChartObserver", _dotNetRef, "OnChartScrolled", ChartElementIds);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("destroyChartObserver");
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
+    }
+
+    // ── Parameters ──
+    private double _capM = 2.0;
+    private double _capPAccess = 0.8;
+    private double _capF1 = 3.0;  // Sector A
+    private double _capF2 = 5.0;  // Sector B
+    private double _capF3 = 7.0;  // Sector C
+    private double _capF4 = 4.0;  // Sector D
+    private double _capF5 = 6.0;  // Sector E
+    private double _resMinViable = 10.0;
+
+    private double[] Forces => new[] { _capF1, _capF2, _capF3, _capF4, _capF5 };
+
+    private static readonly string[] ForceLabels =
+        { "Sector A", "Sector B", "Sector C", "Sector D", "Sector E" };
+
+    private static readonly string[] ForceColors =
+        { "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed" };
+
+    // ── Chart data ──
+    private double[,] _heatData = new double[0, 0];
+    private double[] _heatXValues = Array.Empty<double>();
+    private double[] _heatYValues = Array.Empty<double>();
+    private double _heatColorMax = 250.0;
+    private List<string> _heatTooltipLines = new();
+    private List<RadarAxis> _radarAxes = new();
+    private List<ChartSeries> _sensitivitySeries = new();
+    private List<ChartMarker> _sensitivityMarkers = new();
+    private static readonly IReadOnlySet<int> SensitivityHighlight = new HashSet<int> { 0, 1 };
+    private IReadOnlyList<BarItem> _resilienceBars = Array.Empty<BarItem>();
+    private List<RadarAxis> _resilienceRadarAxes = new();
+    private bool _isResilient;
+
+    // ── Readout helpers ──
+    private double ComputeCapability() =>
+        Sovereignty.NationalCapability(Forces, _capM, _capPAccess);
+
+    // ── Lifecycle ──
+    protected override void OnInitialized() => Recalculate();
+
+    private void Recalculate()
+    {
+        ComputeHeatMap();
+        ComputeRadar();
+        ComputeSensitivity();
+        ComputeResilience();
+    }
+
+    // ── Chart 1: HeatMap — M vs P(access) ──
+    private void ComputeHeatMap()
+    {
+        const int steps = 25;
+        _heatXValues = new double[steps];
+        _heatYValues = new double[steps];
+        _heatData = new double[steps, steps];
+
+        var forces = Forces;
+        double sumF = forces.Sum();
+
+        // Compute theoretical max for color scale: max forces * max M * max P
+        _heatColorMax = 50.0 * 5.0 * 1.0; // ΣF max (5 * 10) * M max (5) * P max (1)
+
+        for (int i = 0; i < steps; i++)
+        {
+            _heatXValues[i] = 0.5 + i * 4.5 / (steps - 1); // M: 0.5 to 5.0
+            _heatYValues[i] = i * 1.0 / (steps - 1);         // P: 0.0 to 1.0
+        }
+
+        for (int r = 0; r < steps; r++)
+            for (int c = 0; c < steps; c++)
+                _heatData[r, c] = Sovereignty.NationalCapability(forces, _heatXValues[c], _heatYValues[r]);
+
+        var cap = ComputeCapability();
+        _heatTooltipLines = new List<string>
+        {
+            "Your current position",
+            $"M = {_capM:F1}, P(access) = {_capPAccess:F2}",
+            $"ΣF = {sumF:F1}",
+            $"E[cap] = {cap:F2}",
+            $"At P=1: cap would be {(sumF * _capM):F1}"
+        };
+    }
+
+    // ── Radar: workforce profile ──
+    private void ComputeRadar()
+    {
+        var forces = Forces;
+        _radarAxes = new List<RadarAxis>();
+        for (int i = 0; i < forces.Length; i++)
+        {
+            _radarAxes.Add(new RadarAxis(
+                ForceLabels[i],
+                forces[i],
+                10.0,
+                new List<string>
+                {
+                    ForceLabels[i],
+                    $"Value: {forces[i]:F1} / 10.0",
+                    $"Contribution: {(forces[i] * _capM * _capPAccess):F1} to capability"
+                }));
+        }
+    }
+
+    // ── Chart 2: Sensitivity — per-force sweep ──
+    private void ComputeSensitivity()
+    {
+        var forces = Forces;
+        _sensitivitySeries = new List<ChartSeries>();
+        _sensitivityMarkers = new List<ChartMarker>();
+
+        for (int fi = 0; fi < forces.Length; fi++)
+        {
+            var points = new List<DataPoint>();
+            for (double fVal = 0; fVal <= 10; fVal += 0.25)
+            {
+                var testForces = (double[])forces.Clone();
+                testForces[fi] = fVal;
+                double cap = Sovereignty.NationalCapability(testForces, _capM, _capPAccess);
+                points.Add(new DataPoint(fVal, cap));
+            }
+            _sensitivitySeries.Add(new ChartSeries(
+                ForceLabels[fi], points, ForceColors[fi], 2.0, false));
+
+            // Current value marker
+            double currentCap = Sovereignty.NationalCapability(forces, _capM, _capPAccess);
+            // We need the actual cap when sweeping this force at its current value
+            // which is the same as currentCap since all forces are at current values
+            _sensitivityMarkers.Add(new ChartMarker(
+                forces[fi], currentCap, ForceColors[fi],
+                $"F{fi + 1}",
+                new List<string>
+                {
+                    ForceLabels[fi],
+                    $"Value: {forces[fi]:F1}",
+                    $"Capability: {currentCap:F2}",
+                    $"M={_capM:F1}, P(access)={_capPAccess:F2}"
+                }));
+        }
+    }
+
+    // ── Chart 3: Resilience bars + check ──
+    private void ComputeResilience()
+    {
+        var forces = Forces;
+        _isResilient = Sovereignty.IsSovereignResilient(forces, _resMinViable);
+
+        // Bar chart at multiple P(access) values
+        var accessProbs = new[] { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 };
+        _resilienceBars = accessProbs
+            .Select(p => new BarItem(
+                $"P={p:F1}",
+                Sovereignty.NationalCapability(forces, _capM, p),
+                p < 0.01 ? "#94a3b8" : "#2563eb"))
+            .ToList();
+
+        // Resilience radar: each force vs minViable / forceCount
+        double perForceThreshold = _resMinViable / Math.Max(forces.Length, 1);
+        _resilienceRadarAxes = new List<RadarAxis>();
+        for (int i = 0; i < forces.Length; i++)
+        {
+            _resilienceRadarAxes.Add(new RadarAxis(
+                ForceLabels[i],
+                forces[i],
+                10.0,
+                new List<string>
+                {
+                    ForceLabels[i],
+                    $"Value: {forces[i]:F1}",
+                    $"Min per sector (even split): {perForceThreshold:F1}",
+                    forces[i] >= perForceThreshold ? "Above even-split threshold" : "Below even-split threshold"
+                }));
+        }
+    }
 }

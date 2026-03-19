@@ -147,12 +147,43 @@ public class EquationWiringTests : BunitContext
     }
 
     [Fact]
-    public void SovereigntyPage_Renders_ContainsThresholdIndicator()
+    public void SovereigntyPage_Renders_ContainsHeatMap()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<SovereigntyPage>();
 
-        var indicator = cut.Find(".threshold-indicator");
-        Assert.NotNull(indicator);
+        var heatmap = cut.Find("svg.heat-map");
+        Assert.NotNull(heatmap);
+    }
+
+    [Fact]
+    public void SovereigntyPage_Renders_ContainsRadarChart()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<SovereigntyPage>();
+
+        var radar = cut.FindAll("svg.radar-chart");
+        Assert.True(radar.Count >= 1, "SovereigntyPage should render at least one radar chart");
+    }
+
+    [Fact]
+    public void SovereigntyPage_Renders_ContainsLineChart()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<SovereigntyPage>();
+
+        var lineChart = cut.Find("svg.line-chart");
+        Assert.NotNull(lineChart);
+    }
+
+    [Fact]
+    public void SovereigntyPage_Renders_ContainsBarChart()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<SovereigntyPage>();
+
+        var bars = cut.FindAll("svg.bar-chart rect");
+        Assert.True(bars.Count >= 1, "SovereigntyPage should render bar chart with at least one bar");
     }
 
     [Fact]

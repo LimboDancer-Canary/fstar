@@ -97,6 +97,7 @@ public class PageRenderTests : BunitContext
     [Fact]
     public void SovereigntyPage_Renders_WithoutThrowing()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<SovereigntyPage>();
         Assert.NotNull(cut.Find("h1"));
     }
