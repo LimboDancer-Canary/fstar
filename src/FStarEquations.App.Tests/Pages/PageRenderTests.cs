@@ -49,6 +49,7 @@ public class PageRenderTests : BunitContext
     [Fact]
     public void NegativeForcePage_Renders_WithoutThrowing()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<NegativeForcePage>();
         Assert.NotNull(cut.Find("h1"));
     }

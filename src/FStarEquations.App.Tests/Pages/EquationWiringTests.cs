@@ -56,6 +56,7 @@ public class EquationWiringTests : BunitContext
     [Fact]
     public void NegativeForcePage_Renders_ContainsWaterfall()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<NegativeForcePage>();
 
         var waterfallSvg = cut.Find("svg.waterfall-chart");

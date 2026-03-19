@@ -98,4 +98,14 @@ public class SliderInteractionTests : BunitContext
         var headers = cut.FindAll(".slider-group-header");
         Assert.True(headers.Count >= 2);
     }
+
+    [Fact]
+    public void NegativeForcePage_ClickPill_ShowsSliders()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NegativeForcePage>();
+        cut.Find(".floating-slider-pill").Click();
+        var sliders = cut.FindAll("input[type=range]");
+        Assert.NotEmpty(sliders);
+    }
 }

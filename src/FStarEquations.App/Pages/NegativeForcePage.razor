@@ -1,128 +1,386 @@
 @page "/negative-force"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <PageTitle>Negative Force — Eq (8), (9), (10)</PageTitle>
 
 <h1>Negative Force — Eq (8), (9), (10)</h1>
 
 <blockquote>
-    Force can be negative — an individual can actively destroy value. The damage scales with the multiplier: a negative-force individual in a high-M environment does far more harm than in a low-M one. The epistemic gap measures how well the organization can tell the difference.
+    Force can be negative: an individual can actively destroy value. The damage scales with the multiplier,
+    so a negative-force individual in a high-M environment does far more harm than in a low-M one.
+    The epistemic gap measures how well the organization can tell the difference.
 </blockquote>
 
-<ChartCard Title="Directed Force Waterfall" Description="Eq (8): F_dir = Sum(w_i * f_i). Shows weighted contributions as a waterfall.">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Eq (8): Directed Force Waterfall + Radar                               *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="neg-force-chart-0">
+<ChartCard Title="Directed Force Waterfall"
+           Description="Eq (8): F_dir = Sum(w_i * f_i). Shows weighted contributions as a waterfall; negative bars pull the total down.">
     <ChildContent>
-        <WaterfallChart Width="600" Height="400"
-                        Items="@_waterfallItems"
-                        YLabel="Contribution" />
+        <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <WaterfallChart Width="600" Height="400"
+                            Items="@_waterfallItems"
+                            YLabel="Contribution" />
+            <div>
+                <p style="text-align: center; font-size: 0.85em; font-weight: 600; margin: 0 0 4px;">Force Profile</p>
+                <RadarChart Width="280" Height="280"
+                            Axes="@_radarAxes"
+                            CenterLabel="@("F=" + _directedForce.ToString("F1"))" />
+            </div>
+        </div>
+        <p class="chart-readout">
+            Directed Force: <strong>F_dir = @_directedForce.ToString("F2")</strong>
+            &ensp;|&ensp;Components: @_f1.ToString("F1"), @_f2.ToString("F1"), @_f3.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Green bars are positive contributions; red bars are negative. The total bar (blue) is their sum.
+            The radar chart shows the raw force magnitude and weight for each component.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="F_{\text{directed}} = \sum_{i} w_i \cdot f_i \qquad \text{where some } f_i < 0 \qquad (8)" />
         <h4>In Plain Language</h4>
-        <p>An engineer who is confident, fast, and systematically wrong doesn't just have low force — they have force in the wrong direction. The additive form is needed here because the multiplicative model (Eq 1) can't represent negative contributions. Strong components compensate for weak ones in the additive model, but when some components are actively negative, the sum can go negative too.</p>
+        <p>An engineer who is confident, fast, and systematically wrong does not just have low force; they have force in the wrong direction. The additive form is needed here because the multiplicative model (Eq 1) cannot represent negative contributions. Strong components compensate for weak ones in the additive model, but when some components are actively negative, the sum can go negative too. A wrong mental model of the system is not zero domain expertise; it is negative domain expertise, because it actively steers decisions in the wrong direction.</p>
+        <h4>Reading the Charts</h4>
+        <p>The waterfall shows each weighted component as a bar stacked from left to right. Green bars add to the running total; red bars subtract. The final blue bar shows the net directed force. The radar chart beside it shows the absolute magnitude and weight of each component as a polygon; a balanced profile fills the shape evenly, while a weakness shows as a visible dent. Negative forces appear as zero on the radar since the radar shows magnitude only.</p>
         <h4>The Mirror</h4>
-        <p>A mirror has no judgment about what it reflects. It reflects brilliant architectural thinking and catastrophic mistakes with equal fluency. It doesn't say "this is a terrible idea." It helps you build the wrong thing faster.</p>
+        <p>A mirror has no judgment about what it reflects. It reflects brilliant architectural thinking and catastrophic mistakes with equal fluency. It does not say "this is a terrible idea." It helps you build the wrong thing faster.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Damage scaling Eq (9)</li>
-            <li>Epistemic corruption Eq (10)</li>
-            <li>Base model Eq (1)</li>
+            <li>Damage scaling: <strong>Eq (9)</strong></li>
+            <li>Epistemic corruption: <strong>Eq (10)</strong></li>
+            <li>Base model (multiplicative form): <strong>Eq (1)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-<ChartCard Title="Damage HeatMap" Description="Eq (9): D = M * |F_neg| * tau. Varies M and F_neg to compute damage.">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Eq (9): Damage HeatMap                                                 *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="neg-force-chart-1">
+<ChartCard Title="Damage HeatMap"
+           Description="Eq (9): D = M * |F_neg| * tau. Axes sweep M and |F_neg|; tau held at slider value. Move sliders to see the crosshair track your position.">
     <ChildContent>
         <HeatMap Width="600" Height="400"
                  XLabel="Multiplier (M)"
-                 YLabel="Negative Force"
+                 YLabel="|F_neg| (Negative Force)"
                  Data="@_damageData"
                  XValues="@_damageXValues"
-                 YValues="@_damageYValues" />
+                 YValues="@_damageYValues"
+                 CrosshairX="@_m"
+                 CrosshairY="@_forceNeg"
+                 CrosshairTooltip="@_damageTooltipLines"
+                 ColorScaleMin="0"
+                 ColorScaleMax="@_damageColorMax" />
+        <p class="chart-readout">
+            Current damage: <strong>D = @_currentDamage.ToString("F2")</strong>
+            &ensp;|&ensp;M=@_m.ToString("F1")
+            &ensp;|&ensp;|F_neg|=@_forceNeg.ToString("F1")
+            &ensp;|&ensp;tau=@_tau.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Heatmap axes: M vs |F_neg|. Tau held at slider value (@_tau.ToString("F1")).
+            Color scale fixed at 0 to @_damageColorMax.ToString("F0") so tau changes are visible.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="D = M \times |F_{\text{negative}}| \times \tau \qquad (9)" />
         <h4>In Plain Language</h4>
-        <p>The blast radius of bad judgment scales directly with M. Pre-LLM, a negative-force individual was rate-limited by execution speed. The LLM removes that governor. Equations (4) and (5) don't just widen the gap between good and mediocre output — they widen the gap between good output and actively destructive output.</p>
+        <p>D is total damage: the cumulative harm a negative-force individual inflicts on the codebase, the system, or the organization. M is the LLM multiplier, which amplifies negative force just as readily as positive force. |F_negative| is the magnitude of the negative force, how wrong the person is, stripped of sign. Tau is time: how long the person operates unchecked before the damage is detected and stopped. Damage scales in three independent dimensions simultaneously: a more powerful LLM, a more wrong engineer, or a longer period without detection each independently worsen the outcome, and together they multiply.</p>
+        <h4>Reading the Charts</h4>
+        <p>The heatmap sweeps M and |F_neg| while tau is held at its slider value. The red crosshair marks your current position. Darker regions indicate higher damage. The color scale is fixed so that changing tau produces visible color shifts. The sensitivity chart below shows how damage responds to each parameter individually.</p>
+        <h4>The Mirror</h4>
+        <p>Pre-LLM, a negative-force individual was rate-limited by execution speed; they could only build the wrong thing as fast as they could type. The LLM removes that governor. The mirror reflects catastrophic mistakes with the same fluency it brings to brilliant ideas.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Variance amplifier Eq (4)</li>
-            <li>Output gap Eq (5)</li>
-            <li>Epistemic corruption Eq (10)</li>
+            <li>Variance amplifier: <strong>Eq (4)</strong></li>
+            <li>Output gap: <strong>Eq (5)</strong></li>
+            <li>Epistemic corruption: <strong>Eq (10)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
 
-<ChartCard Title="Epistemic Gap HeatMap" Description="Eq (10): Delta = Mp / (Ms * Fi). Varies M_presentation and M_substance.">
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Eq (9): Damage Sensitivity                                             *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="neg-force-chart-2">
+<ChartCard Title="Damage Sensitivity"
+           Description="Eq (9): How damage changes as each parameter varies, holding the other two at slider values.">
+    <ChildContent>
+        <LineChart Width="600" Height="400"
+                   XLabel="Parameter Value"
+                   YLabel="Damage (D)"
+                   Series="@_damageSensitivitySeries"
+                   YMin="0"
+                   Markers="@_damageSensitivityMarkers"
+                   HighlightSeriesIndices="@_damageHighlight" />
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Dashed curves (M and |F_neg|) correspond to the heatmap axes.
+            Dots mark each parameter's current slider value.
+        </p>
+    </ChildContent>
+    <TheoryContent>
+        <h4>Why This Matters</h4>
+        <p>Each curve shows how damage responds to a single parameter while the other two stay fixed. Since D = M * |F_neg| * tau is a product of three terms, each curve is linear in the swept parameter (holding the others constant). The slope of each curve reveals which parameter currently dominates the damage: steep means high leverage for reducing harm.</p>
+        <h4>Reading the Chart</h4>
+        <p>Steeper curves indicate higher sensitivity. The dots on each curve mark the current slider value: your "you are here" for all three parameters. Dashed, thicker curves correspond to the two parameters currently displayed on the heatmap axes (M and |F_neg|), linking the two charts visually.</p>
+    </TheoryContent>
+</ChartCard>
+</div>
+
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Eq (10): Epistemic Gap HeatMap                                         *@
+@* ──────────────────────────────────────────────────────────────────────── *@
+
+<div id="neg-force-chart-3">
+<ChartCard Title="Epistemic Gap HeatMap"
+           Description="Eq (10): Delta = Mp / (Ms * Fi). Axes sweep M_presentation and M_substance; F_i held at slider value.">
     <ChildContent>
         <HeatMap Width="600" Height="400"
-                 XLabel="M Presentation"
-                 YLabel="M Substance"
+                 XLabel="M Presentation (Mp)"
+                 YLabel="M Substance (Ms)"
                  Data="@_epistemicData"
                  XValues="@_epistemicXValues"
-                 YValues="@_epistemicYValues" />
+                 YValues="@_epistemicYValues"
+                 CrosshairX="@_mPresentation"
+                 CrosshairY="@_mSubstance"
+                 CrosshairTooltip="@_epistemicTooltipLines"
+                 ColorScaleMin="0"
+                 ColorScaleMax="@_epistemicColorMax"
+                 HighColor="#991b1b" />
+        <p class="chart-readout">
+            Current epistemic gap: <strong>Delta = @_currentEpistemicGap.ToString("F2")</strong>
+            &ensp;|&ensp;Mp=@_mPresentation.ToString("F1")
+            &ensp;|&ensp;Ms=@_mSubstance.ToString("F1")
+            &ensp;|&ensp;Fi=@_forceIndividual.ToString("F1")
+        </p>
+        <p class="chart-readout" style="font-size: 0.85em; opacity: 0.7;">
+            Heatmap axes: Mp vs Ms. Force individual held at @_forceIndividual.ToString("F1").
+            Color scale fixed at 0 to @_epistemicColorMax.ToString("F0"). Darker red = wider gap.
+        </p>
     </ChildContent>
     <TheoryContent>
         <h4>Equation</h4>
         <KatexBlock Latex="\Delta_{\text{epistemic}}(i) = C_{\text{apparent}}(i) - C_{\text{warranted}}(i) \propto \frac{M_p}{M_s(d) \cdot F_i} \qquad (10)" />
         <h4>In Plain Language</h4>
-        <p>The epistemic gap is widest when the presentation multiplier (M_p) is high relative to the substance multiplier (M_s) and the user's force (F_i). The output looks brilliant (M_p is always large). The output is brilliant only when M_s·F_i is also large. For a low-force user working on a novel problem (low M_s), the gap between how the output looks and what it's actually worth is enormous.</p>
+        <p>The epistemic gap is the distance between how competent the output appears and how competent it actually is. M_p (the presentation multiplier) is always high because the LLM polishes everything. M_s (the substance multiplier) varies by domain. F_i is the individual's force. Because M_p is in the numerator and M_s * F_i is in the denominator, the gap is widest when presentation polish is high relative to the product of substance amplification and the user's capability. The output looks brilliant (M_p is always large). The output is brilliant only when M_s * F_i is also large.</p>
+        <h4>Reading the Charts</h4>
+        <p>The heatmap sweeps Mp and Ms while F_i is held at its slider value. The red crosshair marks your current position. Darker red regions indicate a wider epistemic gap (more dangerous). Notice how the gap explodes in the upper-left quadrant (high Mp, low Ms). Reducing F_i via the slider makes the entire surface darker.</p>
         <h4>The Mirror</h4>
-        <p>Think of Narcissus. He stared at his reflection not because it was accurate but because it was beautiful. The LLM operates identically — when it produces a nuanced response, there appears to be understanding behind the text. But that depth is virtual, a property of the reflection's structure, not evidence of anything behind the surface.</p>
+        <p>Think of Narcissus. He stared at his reflection not because it was accurate but because it was beautiful. The LLM operates identically: when it produces a nuanced response, there appears to be understanding behind the text. But that depth is virtual, a property of the reflection's structure, not evidence of anything behind the surface.</p>
         <h4>Connections</h4>
         <ul>
-            <li>Assessment SNR Eq (18)</li>
-            <li>Goodhart's trap Eq (19)</li>
-            <li>Force dynamics Eq (11)</li>
+            <li>Assessment SNR: <strong>Eq (18)</strong></li>
+            <li>Goodhart's trap: <strong>Eq (19)</strong></li>
+            <li>Force dynamics: <strong>Eq (11)</strong></li>
         </ul>
     </TheoryContent>
 </ChartCard>
+</div>
+
+@* ──────────────────────────────────────────────────────────────────────── *@
+@* Slider Panel                                                           *@
+@* ──────────────────────────────────────────────────────────────────────── *@
 
 <FloatingSliderPanel Visible="true" Title="Negative Force Parameters" DefaultY="100">
-    <div class="slider-group-header">Eq (8): Directed Force Waterfall</div>
-    <ParameterSlider Label="Weight 1" Min="0" Max="1" Step="0.1" Value="@_w1" ValueChanged="OnW1Changed" />
-    <ParameterSlider Label="Weight 2" Min="0" Max="1" Step="0.1" Value="@_w2" ValueChanged="OnW2Changed" />
-    <ParameterSlider Label="Weight 3" Min="0" Max="1" Step="0.1" Value="@_w3" ValueChanged="OnW3Changed" />
-    <ParameterSlider Label="Force 1" Min="-10" Max="10" Step="0.1" Value="@_f1" ValueChanged="OnF1Changed" />
-    <ParameterSlider Label="Force 2" Min="-10" Max="10" Step="0.1" Value="@_f2" ValueChanged="OnF2Changed" />
-    <ParameterSlider Label="Force 3" Min="-10" Max="10" Step="0.1" Value="@_f3" ValueChanged="OnF3Changed" />
-    <div class="slider-group-header">Eq (9): Damage HeatMap</div>
-    <ParameterSlider Label="M" Min="0.5" Max="5" Step="0.1" Value="@_m" ValueChanged="OnMChanged" />
-    <ParameterSlider Label="F_neg" Min="0" Max="10" Step="0.1" Value="@_forceNeg" ValueChanged="OnForceNegChanged" />
-    <ParameterSlider Label="Tau" Min="0.1" Max="5" Step="0.1" Value="@_tau" ValueChanged="OnTauChanged" />
-    <div class="slider-group-header">Eq (10): Epistemic Gap</div>
-    <ParameterSlider Label="M Presentation" Min="0.5" Max="5" Step="0.1" Value="@_mPresentation" ValueChanged="OnMPresentationChanged" />
-    <ParameterSlider Label="M Substance" Min="0.5" Max="5" Step="0.1" Value="@_mSubstance" ValueChanged="OnMSubstanceChanged" />
-    <ParameterSlider Label="Force Individual" Min="0.1" Max="10" Step="0.1" Value="@_forceIndividual" ValueChanged="OnForceIndividualChanged" />
+
+    <div class="slider-context-label">
+        @if (_showAllSliders)
+        {
+            <span>Showing all sliders</span>
+        }
+        else if (_activeChartIndex >= 0 && _activeChartIndex < ChartNames.Length)
+        {
+            <span>Sliders for: @ChartNames[_activeChartIndex]</span>
+        }
+        &ensp;
+        <button class="slider-show-all-toggle" @onclick="ToggleShowAll">
+            @(_showAllSliders ? "Auto-filter" : "Show all")
+        </button>
+    </div>
+
+    @* Group 0: Eq (8) Directed Force *@
+    @if (IsGroupVisible(0))
+    {
+        <div class="slider-group-header">Eq (8): Directed Force Components</div>
+    }
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="w1 (Weight 1)" Min="0" Max="1" Step="0.1" Value="@_w1" ValueChanged="OnW1Changed" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="w2 (Weight 2)" Min="0" Max="1" Step="0.1" Value="@_w2" ValueChanged="OnW2Changed" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="w3 (Weight 3)" Min="0" Max="1" Step="0.1" Value="@_w3" ValueChanged="OnW3Changed" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="f1 (Force 1)" Min="-10" Max="10" Step="0.1" Value="@_f1" ValueChanged="OnF1Changed" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="f2 (Force 2)" Min="-10" Max="10" Step="0.1" Value="@_f2" ValueChanged="OnF2Changed" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(0)">
+        <ParameterSlider Label="f3 (Force 3)" Min="-10" Max="10" Step="0.1" Value="@_f3" ValueChanged="OnF3Changed" />
+    </div>
+
+    @* Group 1: Eq (9) Damage *@
+    @if (IsGroupVisible(1))
+    {
+        <div class="slider-group-header">Eq (9): Damage Parameters</div>
+    }
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1" Value="@_m" ValueChanged="OnMChanged" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="|F_neg| (Negative Force)" Min="0" Max="10" Step="0.1" Value="@_forceNeg" ValueChanged="OnForceNegChanged" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(1)">
+        <ParameterSlider Label="tau (Detection Time)" Min="0.1" Max="5" Step="0.1" Value="@_tau" ValueChanged="OnTauChanged" />
+    </div>
+
+    @* Group 2: Eq (10) Epistemic Gap *@
+    @if (IsGroupVisible(2))
+    {
+        <div class="slider-group-header">Eq (10): Epistemic Gap Parameters</div>
+    }
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="Mp (M Presentation)" Min="0.5" Max="5" Step="0.1" Value="@_mPresentation" ValueChanged="OnMPresentationChanged" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="Ms (M Substance)" Min="0.5" Max="5" Step="0.1" Value="@_mSubstance" ValueChanged="OnMSubstanceChanged" />
+    </div>
+    <div class="slider-slot @GroupSlotClass(2)">
+        <ParameterSlider Label="Fi (Force Individual)" Min="0.1" Max="10" Step="0.1" Value="@_forceIndividual" ValueChanged="OnForceIndividualChanged" />
+    </div>
+
 </FloatingSliderPanel>
 
 @code {
-    // Waterfall sliders
+    // ── Scroll-aware slider state ──
+    private int _activeChartIndex = 0;
+    private bool _showAllSliders;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<NegativeForcePage>? _dotNetRef;
+
+    private static readonly string[] ChartNames =
+    {
+        "Directed Force Waterfall",
+        "Damage HeatMap",
+        "Damage Sensitivity",
+        "Epistemic Gap HeatMap"
+    };
+
+    // Per-chart: which slider groups (indices) are visible
+    // Group 0 = Eq (8) weights/forces, 1 = Eq (9) damage params, 2 = Eq (10) epistemic params
+    private static readonly HashSet<int>[] ChartVisibleGroups =
+    {
+        new() { 0 },       // Chart 0: Waterfall + Radar
+        new() { 1 },       // Chart 1: Damage HeatMap
+        new() { 1 },       // Chart 2: Damage Sensitivity
+        new() { 2 },       // Chart 3: Epistemic Gap HeatMap
+    };
+
+    private bool IsGroupVisible(int groupIndex) =>
+        _showAllSliders ||
+        (_activeChartIndex >= 0 && _activeChartIndex < ChartVisibleGroups.Length &&
+         ChartVisibleGroups[_activeChartIndex].Contains(groupIndex));
+
+    private string GroupSlotClass(int groupIndex) => IsGroupVisible(groupIndex) ? "" : "hidden";
+
+    private void ToggleShowAll() => _showAllSliders = !_showAllSliders;
+
+    private static readonly string[] ChartElementIds =
+    {
+        "neg-force-chart-0", "neg-force-chart-1", "neg-force-chart-2", "neg-force-chart-3"
+    };
+
+    [JSInvokable]
+    public void OnChartScrolled(int index)
+    {
+        if (index == _activeChartIndex) return;
+        _activeChartIndex = index;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _jsModule.InvokeVoidAsync(
+                    "initChartObserver", _dotNetRef, "OnChartScrolled", ChartElementIds);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("destroyChartObserver");
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
+    }
+
+    // ── Eq (8): Directed Force parameters ──
     private double _w1 = 0.3, _w2 = 0.5, _w3 = 0.2;
     private double _f1 = 5, _f2 = -3, _f3 = 7;
 
-    // Damage sliders
+    // ── Eq (9): Damage parameters ──
     private double _m = 2;
     private double _forceNeg = 3;
     private double _tau = 1;
 
-    // Epistemic gap sliders
+    // ── Eq (10): Epistemic gap parameters ──
     private double _mPresentation = 3;
     private double _mSubstance = 1;
     private double _forceIndividual = 5;
 
-    // Waterfall data
+    // ── Chart data ──
+    // Eq (8)
     private List<WaterfallItem> _waterfallItems = new();
+    private List<RadarAxis> _radarAxes = new();
+    private double _directedForce;
 
-    // Damage heatmap data
+    // Eq (9) HeatMap
     private double[,] _damageData = new double[0, 0];
     private double[] _damageXValues = Array.Empty<double>();
     private double[] _damageYValues = Array.Empty<double>();
+    private double _damageColorMax = 250.0;
+    private List<string> _damageTooltipLines = new();
+    private double _currentDamage;
 
-    // Epistemic heatmap data
+    // Eq (9) Sensitivity
+    private List<ChartSeries> _damageSensitivitySeries = new();
+    private List<ChartMarker> _damageSensitivityMarkers = new();
+    private HashSet<int> _damageHighlight = new();
+
+    // Eq (10) HeatMap
     private double[,] _epistemicData = new double[0, 0];
     private double[] _epistemicXValues = Array.Empty<double>();
     private double[] _epistemicYValues = Array.Empty<double>();
+    private double _epistemicColorMax = 10.0;
+    private List<string> _epistemicTooltipLines = new();
+    private double _currentEpistemicGap;
 
     protected override void OnInitialized() => Recalculate();
 
@@ -142,27 +400,58 @@
     private void Recalculate()
     {
         ComputeWaterfall();
+        ComputeRadarAxes();
         ComputeDamageHeatMap();
+        ComputeDamageSensitivity();
         ComputeEpistemicHeatMap();
     }
 
+    // ── Eq (8) Waterfall ──
     private void ComputeWaterfall()
     {
         var weights = new[] { _w1, _w2, _w3 };
         var forces = new[] { _f1, _f2, _f3 };
+
+        _directedForce = NegativeForce.DirectedForce(weights, forces);
 
         _waterfallItems = new List<WaterfallItem>
         {
             new($"w1*f1 ({_w1:F1}*{_f1:F1})", _w1 * _f1),
             new($"w2*f2 ({_w2:F1}*{_f2:F1})", _w2 * _f2),
             new($"w3*f3 ({_w3:F1}*{_f3:F1})", _w3 * _f3),
-            new("Total", NegativeForce.DirectedForce(weights, forces), IsTotal: true)
+            new("Total", _directedForce, IsTotal: true)
         };
     }
 
+    // ── Eq (8) Radar: force component profile ──
+    private void ComputeRadarAxes()
+    {
+        var forces = new[] { _f1, _f2, _f3 };
+        var weights = new[] { _w1, _w2, _w3 };
+        var labels = new[] { "f1", "f2", "f3" };
+        var fullLabels = new[] { "Force 1", "Force 2", "Force 3" };
+
+        _radarAxes = new List<RadarAxis>();
+        for (int i = 0; i < forces.Length; i++)
+        {
+            var magnitude = Math.Abs(forces[i]);
+            var pct = (magnitude / 10.0 * 100).ToString("F0");
+            var sign = forces[i] < 0 ? " (NEGATIVE)" : "";
+            var tooltip = new List<string>
+            {
+                $"{fullLabels[i]} ({labels[i]})",
+                $"Value: {forces[i]:F1} | Magnitude: {magnitude:F1} / 10.0 ({pct}%){sign}",
+                $"Weight: {weights[i]:F1}",
+                $"Contribution: {(weights[i] * forces[i]):F2}"
+            };
+            _radarAxes.Add(new RadarAxis(labels[i], magnitude, 10.0, tooltip));
+        }
+    }
+
+    // ── Eq (9) Damage HeatMap ──
     private void ComputeDamageHeatMap()
     {
-        const int steps = 20;
+        const int steps = 25;
         _damageXValues = new double[steps];
         _damageYValues = new double[steps];
         _damageData = new double[steps, steps];
@@ -179,11 +468,72 @@
                 _damageData[r, c] = NegativeForce.Damage(_damageXValues[c], _damageYValues[r], _tau);
             }
         }
+
+        // Fixed color scale: max at M=5, |F_neg|=10, current tau
+        _damageColorMax = NegativeForce.Damage(5.0, 10.0, Math.Max(_tau, 5.0));
+
+        // Current damage for crosshair tooltip
+        _currentDamage = NegativeForce.Damage(_m, _forceNeg, _tau);
+
+        _damageTooltipLines = new List<string>
+        {
+            "Your current position",
+            $"M = {_m:F1}",
+            $"|F_neg| = {_forceNeg:F1}",
+            $"tau = {_tau:F1} (held)",
+            $"Damage D = {_currentDamage:F2}"
+        };
     }
 
+    // ── Eq (9) Damage Sensitivity: one curve per parameter ──
+    private void ComputeDamageSensitivity()
+    {
+        const int pts = 50;
+        var paramNames = new[] { "M", "|F_neg|", "tau" };
+        var paramColors = new[] { "#2563eb", "#dc2626", "#16a34a" };
+        var paramValues = new[] { _m, _forceNeg, _tau };
+        var paramMins = new[] { 0.5, 0.0, 0.1 };
+        var paramMaxes = new[] { 5.0, 10.0, 5.0 };
+
+        _damageSensitivitySeries = new List<ChartSeries>();
+        _damageSensitivityMarkers = new List<ChartMarker>();
+        // Highlight M and |F_neg| (the heatmap axes) = indices 0 and 1
+        _damageHighlight = new HashSet<int> { 0, 1 };
+
+        for (int p = 0; p < 3; p++)
+        {
+            var points = new List<DataPoint>();
+            for (int i = 0; i < pts; i++)
+            {
+                double val = paramMins[p] + i * (paramMaxes[p] - paramMins[p]) / (pts - 1);
+                double damage = p switch
+                {
+                    0 => NegativeForce.Damage(val, _forceNeg, _tau),
+                    1 => NegativeForce.Damage(_m, val, _tau),
+                    2 => NegativeForce.Damage(_m, _forceNeg, val),
+                    _ => 0
+                };
+                points.Add(new DataPoint(val, damage));
+            }
+            _damageSensitivitySeries.Add(new ChartSeries(paramNames[p], points, paramColors[p], 2.0, false));
+
+            // Marker at current value
+            var isAxis = p < 2;
+            var markerTooltip = new List<string>
+            {
+                $"{paramNames[p]}",
+                $"Value = {paramValues[p]:F1}",
+                $"Damage D = {_currentDamage:F2}",
+                isAxis ? "Heatmap axis" : "Held fixed on heatmap"
+            };
+            _damageSensitivityMarkers.Add(new ChartMarker(paramValues[p], _currentDamage, paramColors[p], Tooltip: markerTooltip));
+        }
+    }
+
+    // ── Eq (10) Epistemic Gap HeatMap ──
     private void ComputeEpistemicHeatMap()
     {
-        const int steps = 20;
+        const int steps = 25;
         _epistemicXValues = new double[steps];
         _epistemicYValues = new double[steps];
         _epistemicData = new double[steps, steps];
@@ -200,5 +550,21 @@
                 _epistemicData[r, c] = NegativeForce.EpistemicGap(_epistemicXValues[c], _epistemicYValues[r], _forceIndividual);
             }
         }
+
+        // Fixed color scale: max at Mp=5, Ms=0.5, Fi=min(current, 0.1)
+        _epistemicColorMax = NegativeForce.EpistemicGap(5.0, 0.5, Math.Min(_forceIndividual, 0.1));
+        // Clamp to a reasonable max for display
+        _epistemicColorMax = Math.Min(_epistemicColorMax, 100.0);
+
+        _currentEpistemicGap = NegativeForce.EpistemicGap(_mPresentation, _mSubstance, _forceIndividual);
+
+        _epistemicTooltipLines = new List<string>
+        {
+            "Your current position",
+            $"Mp = {_mPresentation:F1}",
+            $"Ms = {_mSubstance:F1}",
+            $"Fi = {_forceIndividual:F1} (held)",
+            $"Epistemic Gap = {_currentEpistemicGap:F2}"
+        };
     }
 }
