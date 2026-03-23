@@ -158,7 +158,7 @@ Eq. 3 will matter again when we consider sovereignty, where the provider's inves
 
 ## The Variance Amplifier
 
-From Eq. 1, if the LLM multiplies ***<small>FORCE</small>***, and ***<small>FORCE</small>*** varies between individuals, then the LLM doesn't just increase average output. It *amplifies the spread*. The output variance across individuals grows as the *square* of the multiplier (Eq. 4), not linearly. A pre-existing 3x gap between a strong and weak engineer becomes a 9x gap at $M = 3$ and a 15x gap at $M = 5$ (Eq. 5).
+From Eq. 1, if the LLM multiplies ***<small>FORCE</small>***, and ***<small>FORCE</small>*** varies between individuals, then the LLM doesn't just increase average output. It *amplifies the spread*. The statistical variance in output across individuals grows as the *square* of the multiplier (Eq. 4), not linearly. The absolute gap between any two individuals tells the same story in concrete terms: if a strong engineer outproduces a weak one by 3 units before the LLM, the gap becomes $3 \times M$ after (Eq. 5). At $M = 3$ that is a 9-unit gap; at $M = 5$, a 15-unit gap.
 
 This actually understates the problem. The mirror metaphor makes transparent why: high-force engineers *extract more from the tool*. They place sharp, well-formed questions in front of the mirror and get sharp, well-formed reflections back. Their effective $M$ is higher than a low-force engineer's. When $M$ and $F$ correlate positively, the true output variance exceeds even the squared-multiplier prediction (Eq. 4a). The actual divergence is worse than the simple model suggests.
 
