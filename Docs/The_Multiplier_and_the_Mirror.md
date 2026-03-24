@@ -396,10 +396,10 @@ As $F$ decays via Eq. 11, the epistemic gap from Eq. 10 widens, proportional to 
 **Loop 2: Epistemic corruption → Evaluation bottleneck → Organizational risk.**
 As the epistemic gap widens, the evaluation bottleneck (Eq. 7) tightens. More output needs review; the defects are subtler because $M_p$ polishes them.
 
-**Loop 3: Organizational efficiency → Tacit knowledge decay → ***<small>FORCE</small>*** supply collapse.**
+**Loop 3: Organizational efficiency → Tacit knowledge decay →** ***<small>FORCE</small>*** **supply collapse.**
 Organizations consolidate work onto fewer, higher-force individuals. Shared work $W(t)$ declines (Eq. 12b). Tacit knowledge transmission drops. The cohort discontinuity accelerates this: post-LLM juniors lack capacity to absorb tacit knowledge even when exposed.
 
-**Loop 4: ***<small>FORCE</small>*** decay → Motivation decay → ***<small>FORCE</small>*** decay.**
+**Loop 4:** ***<small>FORCE</small>*** **decay → Motivation decay →** ***<small>FORCE</small>*** **decay.**
 The craft experience is diluted. Motivation $f_{\text{mot}}$ is a component of ***<small>FORCE</small>*** in Eq. 1; it enters *multiplicatively*, so its decay doesn't just reduce output linearly. Via the Cobb-Douglas form, declining motivation degrades the effectiveness of *all* other ***<small>FORCE</small>*** components. If $f_{\text{mot}}$ halves, total $F$ drops by more than half because $f_{\text{mot}}^{w_{\text{mot}}}$ pulls down the entire product. This loop hits highest-force individuals hardest.
 
 **Loop 5: Variance amplification → Barbell → Talent concentration → Evaluation bottleneck.**
