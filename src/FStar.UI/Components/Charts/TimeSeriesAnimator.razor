@@ -38,6 +38,8 @@
     [Parameter] public IReadOnlyList<AnimatedSeries>? TimeSeries { get; set; }
     [Parameter] public double Duration { get; set; }
     [Parameter] public double Dt { get; set; }
+    [Parameter] public string XLabel { get; set; } = "";
+    [Parameter] public string YLabel { get; set; } = "";
     [Parameter] public bool IsAnimating { get; set; }
     [Parameter] public EventCallback<bool> IsAnimatingChanged { get; set; }
     [Parameter] public double CurrentTime { get; set; }
@@ -101,7 +103,8 @@
 
         await _module.InvokeVoidAsync("setAnimationData", _canvasId,
             seriesData, TotalFrames, Duration, yMin, yMax,
-            MarginLeft, MarginRight, MarginTop, MarginBottom);
+            MarginLeft, MarginRight, MarginTop, MarginBottom,
+            XLabel, YLabel);
     }
 
     private async Task DrawCurrentFrame(int frame)

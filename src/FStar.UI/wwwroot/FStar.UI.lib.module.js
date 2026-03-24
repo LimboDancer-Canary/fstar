@@ -170,10 +170,12 @@ export function stopAnimationLoop(canvasId) {
 let animationCache = {};
 
 export function setAnimationData(canvasId, seriesData, totalFrames, duration,
-                                  yMin, yMax, mLeft, mRight, mTop, mBottom) {
+                                  yMin, yMax, mLeft, mRight, mTop, mBottom,
+                                  xLabel, yLabel) {
     animationCache[canvasId] = {
         series: seriesData, totalFrames, duration,
-        yMin, yMax, mLeft, mRight, mTop, mBottom
+        yMin, yMax, mLeft, mRight, mTop, mBottom,
+        xLabel: xLabel || '', yLabel: yLabel || ''
     };
 }
 
@@ -217,6 +219,24 @@ export function drawAnimationFrame(canvasId, frameIndex) {
     ctx.textAlign = 'right';
     ctx.fillText(fmtNum(duration), w - mRight, h - 4);
     ctx.textAlign = 'left';
+
+    // Axis titles
+    const { xLabel, yLabel } = data;
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#4b5563';
+    if (xLabel) {
+        ctx.textAlign = 'center';
+        ctx.fillText(xLabel, mLeft + plotW / 2, h - 2);
+        ctx.textAlign = 'left';
+    }
+    if (yLabel) {
+        ctx.save();
+        ctx.translate(12, mTop + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText(yLabel, 0, 0);
+        ctx.restore();
+    }
 
     if (totalFrames < 2 || yRange === 0) return;
 
