@@ -1,42 +1,216 @@
-@using FStar.UI.Models
-@using Microsoft.AspNetCore.Components
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
-<canvas id="@_canvasId"
-        role="img"
-        aria-label="Animated time series chart"
-        width="@Width"
-        height="@Height">
-</canvas>
+<div class="time-series-animator">
+    <canvas id="@_canvasId"
+            role="img"
+            aria-label="Animated time series chart"
+            width="@Width"
+            height="@Height">
+    </canvas>
 
-<div class="time-series-controls">
-    <button @onclick="OnPlayPause" aria-label="@(IsAnimating ? "Pause animation" : "Play animation")">@(IsAnimating ? "Pause" : "Play")</button>
-    <button @onclick="OnReset" aria-label="Reset animation">Reset</button>
+    <div class="time-series-controls">
+        <button @onclick="OnPlayPause"
+                aria-label="@(IsAnimating ? "Pause animation" : "Play animation")">
+            @(IsAnimating ? "Pause" : "Play")
+        </button>
+        <button @onclick="OnResetClicked" aria-label="Reset animation">Reset</button>
+        <span class="time-series-status" aria-live="polite">
+            t = @CurrentTime.ToString("F2") / @Duration.ToString("F1")
+        </span>
+    </div>
 </div>
 
 @code {
+    private readonly string _canvasId = $"ts-canvas-{Guid.NewGuid():N}";
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<TimeSeriesAnimator>? _dotNetRef;
+    private bool _jsInitialized;
+    private IReadOnlyList<AnimatedSeries>? _previousTimeSeries;
+
+    private const int MarginLeft = 55;
+    private const int MarginRight = 15;
+    private const int MarginTop = 15;
+    private const int MarginBottom = 25;
+
     [Parameter] public int Width { get; set; } = 800;
     [Parameter] public int Height { get; set; } = 400;
     [Parameter] public IReadOnlyList<AnimatedSeries>? TimeSeries { get; set; }
     [Parameter] public double Duration { get; set; }
     [Parameter] public double Dt { get; set; }
+    [Parameter] public string XLabel { get; set; } = "";
+    [Parameter] public string YLabel { get; set; } = "";
     [Parameter] public bool IsAnimating { get; set; }
-    [Parameter] public EventCallback<double> OnFrame { get; set; }
+    [Parameter] public EventCallback<bool> IsAnimatingChanged { get; set; }
+    [Parameter] public double CurrentTime { get; set; }
+    [Parameter] public EventCallback<double> CurrentTimeChanged { get; set; }
 
-    private string _canvasId = $"ts-canvas-{Guid.NewGuid():N}";
+    private int TotalFrames => Dt > 0 ? (int)(Duration / Dt) : 0;
+    private int CurrentFrame => Dt > 0 ? Math.Min((int)(CurrentTime / Dt), TotalFrames) : 0;
 
-    private async Task OnPlayPause()
+    protected override async Task OnParametersSetAsync()
     {
-        if (OnFrame.HasDelegate)
+        if (!ReferenceEquals(TimeSeries, _previousTimeSeries))
         {
-            await OnFrame.InvokeAsync(0);
+            var wasFirst = _previousTimeSeries is null;
+            _previousTimeSeries = TimeSeries;
+
+            if (!wasFirst && _jsInitialized)
+            {
+                if (IsAnimating && _module is not null)
+                    await _module.InvokeVoidAsync("stopAnimationLoop", _canvasId);
+
+                await SendDataToJs();
+                await DrawCurrentFrame(0);
+
+                if (IsAnimating)
+                {
+                    IsAnimating = false;
+                    await IsAnimatingChanged.InvokeAsync(false);
+                }
+                CurrentTime = 0;
+                await CurrentTimeChanged.InvokeAsync(0);
+            }
         }
     }
 
-    private async Task OnReset()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (OnFrame.HasDelegate)
+        if (firstRender)
         {
-            await OnFrame.InvokeAsync(-1);
+            try
+            {
+                _module = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/FStar.UI/FStar.UI.lib.module.js");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _module.InvokeVoidAsync("initCanvas", _canvasId, Width, Height);
+                _jsInitialized = true;
+                await SendDataToJs();
+                await DrawCurrentFrame(CurrentFrame);
+            }
+            catch (JSException) { /* SSR / prerender guard */ }
         }
+    }
+
+    private async Task SendDataToJs()
+    {
+        if (_module is null || TimeSeries is null || TimeSeries.Count == 0) return;
+
+        var (yMin, yMax) = ComputeYBounds();
+        var seriesData = TimeSeries
+            .Select(s => new { values = s.Values, color = s.Color })
+            .ToArray();
+
+        await _module.InvokeVoidAsync("setAnimationData", _canvasId,
+            seriesData, TotalFrames, Duration, yMin, yMax,
+            MarginLeft, MarginRight, MarginTop, MarginBottom,
+            XLabel, YLabel);
+    }
+
+    private async Task DrawCurrentFrame(int frame)
+    {
+        if (_module is null) return;
+        await _module.InvokeVoidAsync("drawAnimationFrame", _canvasId, frame);
+    }
+
+    private async Task OnPlayPause()
+    {
+        if (!_jsInitialized || _module is null) return;
+
+        if (IsAnimating)
+        {
+            await _module.InvokeVoidAsync("stopAnimationLoop", _canvasId);
+            IsAnimating = false;
+            await IsAnimatingChanged.InvokeAsync(false);
+        }
+        else
+        {
+            if (CurrentFrame >= TotalFrames)
+            {
+                CurrentTime = 0;
+                await CurrentTimeChanged.InvokeAsync(0);
+            }
+
+            IsAnimating = true;
+            await IsAnimatingChanged.InvokeAsync(true);
+            await _module.InvokeVoidAsync("startTimeSeriesAnimation",
+                _canvasId, _dotNetRef, "OnAnimationUpdate",
+                Duration, Dt, CurrentTime);
+        }
+    }
+
+    private async Task OnResetClicked()
+    {
+        if (_module is not null && _jsInitialized)
+            await _module.InvokeVoidAsync("stopAnimationLoop", _canvasId);
+
+        var wasAnimating = IsAnimating;
+        IsAnimating = false;
+        CurrentTime = 0;
+
+        if (_jsInitialized)
+            await DrawCurrentFrame(0);
+
+        if (wasAnimating)
+            await IsAnimatingChanged.InvokeAsync(false);
+        await CurrentTimeChanged.InvokeAsync(0);
+    }
+
+    [JSInvokable]
+    public async Task OnAnimationUpdate(double time, bool completed)
+    {
+        if (!IsAnimating) return;
+
+        CurrentTime = time;
+        await CurrentTimeChanged.InvokeAsync(time);
+
+        if (completed)
+        {
+            IsAnimating = false;
+            await IsAnimatingChanged.InvokeAsync(false);
+        }
+
+        StateHasChanged();
+    }
+
+    private (double min, double max) ComputeYBounds()
+    {
+        if (TimeSeries is null || TimeSeries.Count == 0) return (0, 1);
+
+        var min = double.MaxValue;
+        var max = double.MinValue;
+
+        foreach (var series in TimeSeries)
+        {
+            foreach (var val in series.Values)
+            {
+                if (val < min) min = val;
+                if (val > max) max = val;
+            }
+        }
+
+        if (Math.Abs(max - min) < 1e-10)
+        {
+            min -= 1;
+            max += 1;
+        }
+
+        var range = max - min;
+        return (min - range * 0.05, max + range * 0.05);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("stopAnimationLoop", _canvasId);
+                await _module.InvokeVoidAsync("clearAnimationData", _canvasId);
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotNetRef?.Dispose();
     }
 }

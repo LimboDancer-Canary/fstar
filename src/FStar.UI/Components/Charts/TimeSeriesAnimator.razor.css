@@ -1,0 +1,43 @@
+.time-series-animator {
+    display: block;
+    max-width: 100%;
+}
+
+.time-series-animator canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 4px;
+    background: var(--bg-card, #ffffff);
+}
+
+.time-series-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.time-series-controls button {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 4px;
+    background: var(--bg-card, #ffffff);
+    color: var(--text-primary, #1a1a2e);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.time-series-controls button:hover {
+    background: var(--bg-hover, #f3f4f6);
+    border-color: var(--accent, #2563eb);
+}
+
+.time-series-status {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #6b7280);
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
