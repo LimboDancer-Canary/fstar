@@ -1,0 +1,97 @@
+@page "/time-series-player"
+
+<PageTitle>Time-Series Player</PageTitle>
+
+<h1>Time-Series Player</h1>
+
+<blockquote>
+    Trajectories unfold over time. This page animates how output evolves
+    under different force levels, showing the divergence that static charts
+    compress into a single snapshot.
+</blockquote>
+
+<ChartCard Title="Output Trajectories"
+           Description="Animated output over time for varying force levels at the current multiplier.">
+    <ChildContent>
+        <TimeSeriesAnimator Width="800" Height="400"
+                            TimeSeries="@_series"
+                            Duration="@Duration"
+                            Dt="@Dt"
+                            IsAnimating="@_isAnimating"
+                            IsAnimatingChanged="@OnAnimatingChanged"
+                            CurrentTime="@_currentTime"
+                            CurrentTimeChanged="@OnTimeChanged" />
+        <p class="chart-readout">
+            t = <strong>@_currentTime.ToString("F2")</strong>
+            &ensp;|&ensp;M = @_m.ToString("F1")
+            &ensp;|&ensp;@(_isAnimating ? "Playing" : "Paused")
+        </p>
+    </ChildContent>
+    <TheoryContent>
+        <h4>What You Are Seeing</h4>
+        <p>
+            Three output trajectories for engineers with different force levels
+            (F = 2, 5, 8), all using the same multiplier M. Output grows as each
+            engineer interacts with the tool over time, but the rate and ceiling
+            differ. The widening gap between the top and bottom curves is the
+            divergence that Eq (5) predicts.
+        </p>
+        <h4>Connections</h4>
+        <ul>
+            <li>Output gap: <strong>Eq (5)</strong></li>
+            <li>Variance amplification: <strong>Eq (4)</strong></li>
+            <li>Divergence: <strong>Eq (16)</strong></li>
+        </ul>
+    </TheoryContent>
+</ChartCard>
+
+<FloatingSliderPanel Visible="true" Title="Player Parameters" DefaultY="100">
+    <ChildContent>
+        <ParameterSlider Label="M (Multiplier)" Min="0.5" Max="5" Step="0.1"
+                         Value="@_m" ValueChanged="@OnMChanged" />
+    </ChildContent>
+</FloatingSliderPanel>
+
+@code {
+    private const double Duration = 10.0;
+    private const double Dt = 0.05;
+    private const double Tau = 3.0;
+
+    private double _m = 3.0;
+    private bool _isAnimating;
+    private double _currentTime;
+    private IReadOnlyList<AnimatedSeries>? _series;
+
+    protected override void OnInitialized() => ComputeSeries();
+
+    private void ComputeSeries()
+    {
+        var steps = (int)(Duration / Dt);
+        _series = new List<AnimatedSeries>
+        {
+            new("F = 2 (Low)", GenerateTrajectory(2.0, steps), "#ef4444"),
+            new("F = 5 (Mid)", GenerateTrajectory(5.0, steps), "#f59e0b"),
+            new("F = 8 (High)", GenerateTrajectory(8.0, steps), "#22c55e")
+        };
+    }
+
+    private double[] GenerateTrajectory(double force, int steps)
+    {
+        var values = new double[steps + 1];
+        for (var i = 0; i <= steps; i++)
+        {
+            var t = i * Dt;
+            values[i] = _m * force * (1.0 - Math.Exp(-t / Tau));
+        }
+        return values;
+    }
+
+    private void OnMChanged(double val)
+    {
+        _m = val;
+        ComputeSeries();
+    }
+
+    private void OnAnimatingChanged(bool val) => _isAnimating = val;
+    private void OnTimeChanged(double val) => _currentTime = val;
+}

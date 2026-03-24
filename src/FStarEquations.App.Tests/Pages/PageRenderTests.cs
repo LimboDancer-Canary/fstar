@@ -138,4 +138,12 @@ public class PageRenderTests : BunitContext
         var cut = Render<TimelineDashboard>();
         Assert.NotNull(cut.Find("h1"));
     }
+
+    [Fact]
+    public void TimeSeriesPlayerPage_Renders_WithoutThrowing()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<TimeSeriesPlayerPage>();
+        Assert.NotNull(cut.Find("h1"));
+    }
 }
