@@ -367,27 +367,47 @@ The preceding sections form a system of reinforcing feedback loops.
 
 ```mermaid
 graph TD
-    F["F: Force<br/>Eq 1, 11"] -->|"Eq 10: F decays"| EC["Epistemic<br/>corruption"]
-    EC -->|"Eq 7: harder to review"| EB["Evaluation<br/>bottleneck"]
-    EB -->|"Eq 7a: consolidate work"| SW["Shared work<br/>declines"]
-    SW -->|"Eq 12b"| TK["Tacit knowledge<br/>decays"]
-    TK -->|"Eq 12: pipeline breaks"| F
+    F["F: Force<br/>Eq 1, 11"]
 
-    F -->|"Eq 23: craft diluted"| MOT["Motivation<br/>decays"]
-    MOT -->|"Eq 1: multiplicative"| F
+    %% Loop 1: Atrophy → Epistemic corruption → Undetected damage
+    F -->|"L1: Eq 10, F decays"| EC["Epistemic<br/>corruption"]
+    EC -->|"L1: damage undetected"| F
 
-    F -->|"Eq 26: training signal"| FM["F→M<br/>transfer"]
-    FM -->|"Eq 11: σ term"| DI["Org de-invests<br/>in F"]
-    DI -->|"F* rises, Eq 14, 30"| F
+    %% Loop 2: Epistemic corruption → Evaluation bottleneck → Organizational risk
+    EC -->|"L2: Eq 7, harder to review"| EB["Evaluation<br/>bottleneck"]
 
-    FM -->|"Eq 31: if F low"| MQ["Model quality<br/>degrades"]
-    MQ -->|"M stagnates"| F
+    %% Loop 3: Organizational efficiency → Tacit knowledge decay → FORCE supply collapse
+    EB -->|"L3: Eq 7a, consolidate work"| SW["Shared work<br/>declines"]
+    SW -->|"L3: Eq 12b"| TK["Tacit knowledge<br/>decays"]
+    TK -->|"L3: Eq 12, pipeline breaks"| F
 
-    VAR["Variance<br/>Eq 4"] -->|"Eq 6: barbell"| TC["Talent<br/>concentrates"]
-    TC -->|"Fewer evaluators"| EB
+    %% Loop 4: FORCE decay → Motivation decay → FORCE decay
+    F -->|"L4: Eq 23, craft diluted"| MOT["Motivation<br/>decays"]
+    MOT -->|"L4: Eq 1, multiplicative"| F
 
-    COH["Cohort<br/>discontinuity<br/>Eq 32"] -->|"Lower absorption"| TK
-    COH -->|"More below F*"| F
+    %% Loop 5: Variance amplification → Barbell → Talent concentration → Evaluation bottleneck
+    VAR["Variance<br/>Eq 4"] -->|"L5: Eq 6, barbell"| TC["Talent<br/>concentrates"]
+    TC -->|"L5: fewer evaluators"| EB
+
+    %% Loop 6: F→M transfer → De-investment → Training signal degradation → M stagnation
+    F -->|"L6: Eq 26, training signal"| FM["F→M<br/>transfer"]
+    FM -->|"L6: Eq 11, σ term"| DI["Org de-invests<br/>in F"]
+    DI -->|"L6: F* rises, Eq 14, 30"| F
+    FM -->|"L6: Eq 31, if F low"| MQ["Model quality<br/>degrades"]
+    MQ -->|"L6: M stagnates"| F
+
+    %% Loop 7: Cohort discontinuity → Reduced absorption → Accelerated pipeline collapse
+    COH["Cohort<br/>discontinuity<br/>Eq 32"] -->|"L7: lower absorption"| TK
+    COH -->|"L7: more below F*"| F
+
+    %% Edge colors by loop
+    linkStyle 0,1 stroke:#e74c3c,stroke-width:2px
+    linkStyle 2 stroke:#e67e22,stroke-width:2px
+    linkStyle 3,4,5 stroke:#27ae60,stroke-width:2px
+    linkStyle 6,7 stroke:#8e44ad,stroke-width:2px
+    linkStyle 8,9 stroke:#16a085,stroke-width:2px
+    linkStyle 10,11,12,13,14 stroke:#2980b9,stroke-width:2px
+    linkStyle 15,16 stroke:#d35400,stroke-width:2px
 ```
 
 **Loop 1: Atrophy → Epistemic corruption → Undetected damage.**
