@@ -1,4 +1,4 @@
-# The Multiplier, Mirror and The Tipping Point
+﻿# The Multiplier, Mirror and The Tipping Point
 
 *A mathematical framework for human capability under AI amplification and the future of software engineering*
 
