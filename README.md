@@ -1,6 +1,6 @@
 # fstar
 
-An interactive simulation of the equation framework from [*The Multiplier, Mirror and The Tipping Point*](https://limbodancer-canary.github.io/fstar/docs/The_Multiplier_and_the_Mirror.html) by Dennis A. Landi.
+An interactive simulation of the equation framework from [*The Multiplier, Mirror and The Tipping Point*](https://realization-engine.github.io/fstar/docs/The_Multiplier_and_the_Mirror.html) by Dennis A. Landi.
 
 ## The Framework
 
@@ -108,9 +108,9 @@ Nine custom SVG chart components: line charts, heatmaps, bar charts, phase portr
 
 ## Links
 
-- [Live Application](https://limbodancer-canary.github.io/fstar/)
-- [The Article (rendered)](https://limbodancer-canary.github.io/fstar/docs/The_Multiplier_and_the_Mirror.html)
-- [Citations](https://limbodancer-canary.github.io/fstar/docs/The_Multiplier_and_the_Mirror_Citations.html)
+- [Live Application](https://realization-engine.github.io/fstar/)
+- [The Article (rendered)](https://realization-engine.github.io/fstar/docs/The_Multiplier_and_the_Mirror.html)
+- [Citations](https://realization-engine.github.io/fstar/docs/The_Multiplier_and_the_Mirror_Citations.html)
 
 ## Running Locally
 
