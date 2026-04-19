@@ -13,6 +13,8 @@
 
 There is a tipping point hidden in the relationship between a human and a large language model. Above it, the LLM compounds your capability. Below it, the LLM erodes it, and the erosion can become irreversible. This article will give you the mathematical framework to identify that threshold: how it works, where it sits, and what determines which side of it you, your team, your firm, or your workforce lands on. By the end, you will understand not just what the LLM multiplies, but what it reflects, why those are different questions, and why the difference governs the future of software engineering.
 
+**A note on scope.** The framework is general. Its subject is human capability under LLM amplification, not software specifically. Software engineering is the worked example throughout this article for two reasons: it is the domain where the author has lived the dynamics most directly, and it is where ***<small>FORCE</small>***'s composition, domain expertise, diagnostic precision, architectural judgment, clarity of specification, can be demonstrated in rich concrete detail. Readers in medicine, law, research, design, strategy, journalism, or any knowledge profession should substitute their own expert practice wherever "engineer" appears. The equations, the tipping point, the atrophy dynamics, and the mirror's twin channels do not specialize to software; only the examples do.
+
 This framework started with a personal observation. If you model LLM-augmented output as $O = M \times F$, where $M$ is the LLM's amplification and $F$ is the human capability it acts upon, my own output under augmentation was roughly 50x my unaided baseline. The magnitude itself was less interesting than what happened when I looked around. Colleagues with different professional backgrounds and different years of experience were seeing very different numbers, and the gaps were not small. The same tool, the same $M$, was producing wildly different $O$ across people. The variable that explained the difference was not the multiplier. It was whatever $F$ actually is, how it is composed, why it varies, and whether the tool itself changes it over time. That variance, and the question of what drives it, is what this framework sets out to formalize.
 
 The consequences reach further than individual productivity. The framework reveals a coupled system: individual skill dynamics interact with organizational bottlenecks, labor market restructuring, knowledge pipeline collapse, and the flow of human expertise into the model itself. At the center is the tipping point, a threshold that sorts individuals, teams, firms, and nations onto diverging, self-reinforcing trajectories. The mathematics describe not just a new relationship between human and LLM, but the conditions under which that relationship compounds capability or erodes it, and the conditions under which the erosion becomes irreversible.
@@ -105,7 +107,9 @@ The mirror makes this vivid. You cannot place a question before the mirror that 
 
 ### So, what is the MIRROR? ###
 
-The presentation channel $M_p$ drives the epistemic gap (Eq. 10), collapses assessment signal (Eq. 18), and enables Goodhart-style gaming (Eq. 19). The substance channel $M_s(d)$ governs domain-specific amplification (Eq. 2). **Mirror** is not only a mechanism; it is a formal object with internal structure.
+**Mirror** is the human-LLM interaction itself, treated as a structured object rather than a single number. It is what an engineer actually encounters when they work with the model: a reflective surface that takes articulated thought, re-represents it, and returns it in inspectable form, with both productive and deceptive effects bundled into the same interaction.
+
+One scalar cannot describe it. The presentation channel $M_p$ drives the epistemic gap (Eq. 10), collapses assessment signal (Eq. 18), and enables Goodhart-style gaming (Eq. 19). The substance channel $M_s(d)$ governs domain-specific amplification (Eq. 2). These are not two numbers that happen to coexist; they are projections of the same underlying object, and the framework depends on keeping them distinct. **Mirror** is not only a mechanism; it is a formal object with internal structure.
 
 **Definition.** **Mirror** ($\mathbf{M}_{\text{mirror}}$) is a structured, LLM-mediated reflective system that:
 
@@ -398,6 +402,14 @@ The problems compound *faster* as the technology improves. And the F→M transfe
 ---
 
 ## The Phase Portrait
+
+> **Math-heavy zone.** The next section derives the two-dimensional geometry of the coupled system: Jacobians, eigenvalues, a state-dependent separatrix, and an irreversibility region. If you don't need the derivations, here is what they show:
+>
+> - **The tipping point is not a number.** It is a rising curve $F^*(M)$ in the $(F, M)$ plane. An engineer can slip into the decay basin without $F$ falling, because the curve has risen past them.
+> - **Managed decline may not be an equilibrium.** Depending on parameters, it is a *saddle*: a transit point the system passes through on its way to virtuous or collapse. Apparent stability there is structural illusion.
+> - **There is a region of the plane from which no feasible policy intervention returns the trajectory.** This *irreversibility frontier* is crossed before output degradation becomes visible.
+>
+> If you trust these three results, skip to [Part Two - Ramifications](#part-two---ramifications). The "In plain language" paragraphs throughout this section restate the conclusions as you go, if you stay.
 
 The tipping point has been a number. Eq. 14 defined $F^*$ as the threshold of ***<small>FORCE</small>*** where growth and decay balance, derived by setting $dF/dt = 0$ and holding the multiplier fixed. Nothing in the system actually holds the multiplier fixed. Eq. 25 says $M$ grows over time. Eq. 31 says the quality of that growth depends on the ***<small>FORCE</small>*** of the workforce feeding it. $F$ depends on $M$ and $M$ depends on $\bar{F}$. The threshold and the multiplier are coupled, and when the full system is written together, the tipping point is no longer a scalar. It becomes a curve in a two-dimensional plane, and the long-run trajectory of an engineer, a team, a firm, or a nation traces a path across that plane toward one of several possible destinations. This section derives the plane, draws the curve, and reads what the geometry says about which destinations are reachable and which are not.
 
@@ -970,7 +982,7 @@ Negative ***<small>FORCE</small>*** (Eq. 8) is dangerous. But there is a subtler
 
 The substance/presentation split makes this precise. The epistemic gap, the distance between how competent the output *appears* and how competent it actually *is*, scales with the ratio of the presentation projection to the product of substance amplification and the user's capability (Eq. 10). The output always looks brilliant, because **Mirror**'s presentation projection $M_p$ is broadly high. The output *is* brilliant only when substance amplification and the user's ***<small>FORCE</small>*** are also high. For a low-force user working on a novel problem where substance amplification is low, the gap between how the output looks and what it is actually worth is enormous.
 
-The mirror metaphor reveals why this corruption is seductive. Think of Narcissus, from Greek mythology. He stared at his reflection not because it was accurate but because it was *beautiful*. There is a deeper optical illusion at work: a reflection in a mirror appears to occupy space behind the glass: depth that is virtual, a property of the reflection's structure, not evidence of anything behind the surface. The LLM operates identically. When it produces a nuanced response, there appears to be *understanding* behind the text. But that depth is virtual.
+The mirror metaphor reveals why this corruption is seductive. Narcissus stared at his reflection not because it was accurate but because it was *beautiful*. There is a deeper optical illusion at work: a reflection in a mirror appears to occupy space behind the glass: depth that is virtual, a property of the reflection's structure, not evidence of anything behind the surface. The LLM operates identically. When it produces a nuanced response, there appears to be *understanding* behind the text. But that depth is virtual.
 
 When the reflection looks deep, users attribute the depth to the LLM. An experienced engineer correctly identifies this: "the LLM gave a great answer because I asked a great question." An inexperienced engineer reverses the attribution: "the LLM really understands this." The first interpretation preserves agency. The second offloads it, and the offloading is the first step toward atrophy.
 
@@ -1552,7 +1564,7 @@ The paradox: the ***<small>FORCE</small>*** multiplier devalues what it multipli
   <line x1="350" y1="147.5" x2="432" y2="117.5" stroke="#d62828" stroke-width="1" marker-end="url(#mp-arr)"/>
 </svg>
 
-*Motivation enters the ***<small>FORCE</small>*** product as $f_{\mathrm{mot}}^{w_{\mathrm{mot}}}$. Because the other components are also raised to their own weights and multiplied together, any decline in motivation compounds across the entire product. A demotivated expert is not 50% of an expert; at meaningful autonomy loss, she is substantially less than that. The shaded region is the additional loss the multiplicative form produces beyond the motivation decay alone.*
+*Motivation enters the **<small>FORCE</small>** product as $f_{\mathrm{mot}}^{w_{\mathrm{mot}}}$. Because the other components are also raised to their own weights and multiplied together, any decline in motivation compounds across the entire product. A demotivated expert is not 50% of an expert; at meaningful autonomy loss, she is substantially less than that. The shaded region is the additional loss the multiplicative form produces beyond the motivation decay alone.*
 
 Engineers are people, and intrinsic motivation $f_{\text{mot}}$ is a component of ***<small>FORCE</small>*** in Eq. 1. In the Cobb-Douglas form, its decay has structural consequences: it enters multiplicatively, pulling down the *entire* ***<small>FORCE</small>*** product, not just the motivation slice.
 
@@ -1610,7 +1622,7 @@ This feeds back into Eq. 11 through the multiplicative structure of Eq. 1: decli
   <text x="770" y="122.5" font-family="sans-serif" font-size="11" font-weight="700" fill="#d62828">below threshold</text>
 </svg>
 
-*Nation A's bar shrinks only moderately when the multiplier is removed, because the underlying domestic ***<small>FORCE</small>*** is sufficient. Nation B's bar collapses below the minimum viable threshold under the same test, revealing that the apparent capability was mostly borrowed from a foreign provider. Eq. 24 discounts by access risk; Eq. 24a reveals whether there is anything underneath.*
+*Nation A's bar shrinks only moderately when the multiplier is removed, because the underlying domestic **<small>FORCE</small>** is sufficient. Nation B's bar collapses below the minimum viable threshold under the same test, revealing that the apparent capability was mostly borrowed from a foreign provider. Eq. 24 discounts by access risk; Eq. 24a reveals whether there is anything underneath.*
 
 The framework has a geopolitical dimension that falls directly out of Eqs. 3 and 1. If LLMs are multipliers and ***<small>FORCE</small>*** is human capital, then a nation's return on AI investment is bounded by its existing talent base, and its continued access to the multiplier itself.
 
@@ -1876,6 +1888,8 @@ Build the ***<small>FORCE</small>***. The multiplication takes care of itself.
 ---
 
 ## The Future of the Software Engineer
+
+**Scope note.** The analysis that follows narrows to software engineering as the worked case. The same structure, ladder, junior-role crisis, four futures, applies to any profession where apprenticeship passes tacit knowledge through shared execution: medicine's resident years, law's associate grind, research's PhD pipeline, journalism's reporter-to-editor path, design's studio critique, consulting's deck-building seasoning. The equations are the same. Substitute your profession's $\alpha \cdot S$ term, its characteristic shared work $W(t)$, and its deep-layer ***<small>FORCE</small>*** components. The predictions below translate without modification to any field where entry-level practice was the vehicle through which expertise was built.
 
 The framework has, to this point, described dynamics: what is happening, why, and through what mechanisms. But the equations are not merely diagnostic. They are projectable. When parameterized and run forward, they produce specific predictions about what software engineering becomes in the next decade. The predictions are uncomfortable, but they follow from the mathematics with little room for evasion.
 

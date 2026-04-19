@@ -901,3 +901,153 @@ Let $F_{\text{max}} = 1.0$ (maximum achievable under pre-LLM conditions), $S_{\t
 The 2020 cohort could achieve full Force; they had the full pre-LLM struggle environment. The 2026 cohort enters with a ceiling of 0.56, not because they are less talented, but because 55% of the struggle that would have built their Force has been absorbed by the LLM. The 2030 cohort's ceiling is 0.20.
 
 **Combine this with the rising tipping point** (Eq. 30). If $F^* = 0.80$ by 2028, the 2028 cohort enters at $F_{\text{initial}} = 0.37$, well below the tipping point. They are born below a line that is rising. The growth basin is inaccessible to them from day one, absent deliberate intervention to reintroduce productive struggle.
+
+---
+
+## Eq. 33a and Eq. 33b: The Coupled $(F, M)$ System
+
+$$\dot{F} = \alpha S + \gamma E F - \beta R(M) - \sigma M_{\text{abs}}(M) \qquad (33a)$$
+
+$$\dot{M} = \mu(\bar{F}) \cdot M \qquad (33b)$$
+
+The first 32 equations watched $F$ or $M$ evolve separately. Eq. 33 watches them evolve together. To make the arithmetic concrete, commit to the following illustrative forms, chosen so the growth and decay numbers match the Eq. 14 baseline:
+
+- $\alpha = 0.2$, $\beta = 0.3$, $\gamma = 0.4$, $\sigma = 0.1$
+- $S = 0.3$, $E = 0.5$
+- $R(M) = 0.6 M$ and $M_{\text{abs}}(M) = 0.5 M$ (both linear in $M$)
+- $\mu(\bar{F}) = 0.1 \cdot (\bar{F} - 1)$ (linear in workforce Force, zero at $\bar F = 1$)
+- Identify $\bar{F} \approx F$ for a single-agent trajectory
+
+Substituting these reduces the system to two lines of arithmetic:
+
+$$\dot{F} = 0.06 + 0.2 F - 0.23 M \qquad \dot{M} = 0.1(F - 1) M$$
+
+**Trajectory 1: Ada starts above the line.** At $t = 0$, $(F, M) = (1.5, 1.0)$.
+
+| $t$ | $F$ | $M$ | $\dot F$ | $\dot M$ |
+|-----|-----|-----|----------|----------|
+| 0 | 1.50 | 1.00 | $0.06 + 0.30 - 0.23 = +0.13$ | $0.1 \cdot 0.5 \cdot 1.0 = +0.05$ |
+| 1 | 1.63 | 1.05 | $0.06 + 0.326 - 0.242 = +0.144$ | $0.1 \cdot 0.63 \cdot 1.05 = +0.066$ |
+| 2 | 1.77 | 1.12 | $0.06 + 0.355 - 0.257 = +0.158$ | $0.1 \cdot 0.77 \cdot 1.12 = +0.086$ |
+
+Both rates positive and growing. Ada's trajectory compounds in both variables. The multiplier is rising because she is supplying good signal; her $F$ is rising because deliberate engagement pays off against the growing $M$.
+
+**Trajectory 2: Cora starts below the line.** At $t = 0$, $(F, M) = (0.70, 1.0)$.
+
+| $t$ | $F$ | $M$ | $\dot F$ | $\dot M$ |
+|-----|-----|-----|----------|----------|
+| 0 | 0.70 | 1.00 | $0.06 + 0.14 - 0.23 = -0.03$ | $0.1 \cdot (-0.30) \cdot 1.0 = -0.030$ |
+| 1 | 0.67 | 0.97 | $0.06 + 0.134 - 0.223 = -0.029$ | $0.1 \cdot (-0.33) \cdot 0.97 = -0.032$ |
+| 2 | 0.64 | 0.94 | $0.06 + 0.128 - 0.216 = -0.028$ | $0.1 \cdot (-0.36) \cdot 0.94 = -0.034$ |
+
+Both rates negative. Cora's $F$ is dragging the multiplier's growth rate below zero; $M$ is not just failing to grow, it is shrinking. Her decline and the multiplier's decline reinforce each other. This is the coupling Eq. 31 predicted, now made arithmetic.
+
+**Captures:** Two engineers with the same local environment diverge qualitatively, not because the parameters differ, but because their starting positions fall on different sides of the line that will be derived in Eq. 34.
+
+---
+
+## Eq. 34: The Separatrix
+
+$$F^*(M) = \frac{\beta \cdot R(M) + \sigma \cdot M_{\text{abs}}(M)}{\gamma \cdot E} \qquad (34)$$
+
+Using the same forms as Eq. 33:
+
+$$F^*(M) = \frac{(0.3)(0.6 M) + (0.1)(0.5 M)}{(0.4)(0.5)} = \frac{0.18 M + 0.05 M}{0.20} = 1.15 \, M$$
+
+The separatrix under these numbers is a straight line of slope 1.15 through the origin. Evaluating at a handful of multiplier values:
+
+| $M$ | $F^*(M)$ | Ada at $F = 1.5$ | Ben at $F = 1.0$ |
+|-----|----------|------------------|-------------------|
+| 0.5 | 0.575 | above (safely) | above |
+| 1.0 | 1.15 | above | **below** |
+| 1.3 | 1.495 | barely above | below |
+| 2.0 | 2.30 | **below** | below |
+| 3.0 | 3.45 | below (far) | below |
+
+Ada held her Force steady at 1.5 from $M = 0.5$ through $M = 3.0$. She did nothing wrong. She did not get weaker. But somewhere between $M = 1.3$ and $M = 1.4$, the separatrix rose past her. At $M = 1.3$ she was in the virtuous basin; by $M = 2.0$ she is in the decay basin. That is what it means for the tipping point to be a curve rather than a number. The threshold is moving. An engineer can be left behind by a world that is upgrading around her, without any decline in her own capability.
+
+**Compare with Eq. 14.** That earlier equation gave $F^* = 1.15$ as a number. That number was Eq. 34 evaluated at $M = 1$. The scalar was always a cross-section of a curve; Eq. 14 just held the multiplier fixed so the cross-section was all you saw.
+
+**Captures:** The tipping point is a state-dependent curve, not a scalar. A trajectory can cross it with no change in $F$, simply because $M$ moved.
+
+---
+
+## Eq. 35: Jacobian and Fixed-Point Classification
+
+$$J(F^*, M^*) = \begin{bmatrix} \dfrac{\partial \dot{F}}{\partial F} & \dfrac{\partial \dot{F}}{\partial M} \\[0.4em] \dfrac{\partial \dot{M}}{\partial F} & \dfrac{\partial \dot{M}}{\partial M} \end{bmatrix} \qquad (35)$$
+
+This is the equation the phase portrait turns on. Working it out concretely proceeds in five steps.
+
+**Step 1: Locate a fixed point.** Using the Eq. 33 system, both rates vanish where:
+
+- $\dot M = 0 \Rightarrow M = 0$ or $F = 1$
+- $\dot F = 0$ at $F = 1$: $0.06 + 0.2 - 0.23 M = 0 \Rightarrow M = 0.26 / 0.23 \approx 1.13$
+
+The interior fixed point is at $(F^*, M^*) = (1.00, 1.13)$. This is the "managed decline" equilibrium discussed in Terminal Dynamics, the middle candidate sitting on the separatrix.
+
+**Step 2: Write the four partial derivatives symbolically.**
+
+$$\frac{\partial \dot F}{\partial F} = \gamma E = 0.20 \qquad \frac{\partial \dot F}{\partial M} = -\beta R'(M) - \sigma M_{\text{abs}}'(M) = -(0.18 + 0.05) = -0.23$$
+
+$$\frac{\partial \dot M}{\partial F} = \mu'(\bar F) \cdot M = 0.1 \cdot M \qquad \frac{\partial \dot M}{\partial M} = \mu(\bar F) = 0.1 (F - 1)$$
+
+**Step 3: Evaluate at the fixed point $(1.00, 1.13)$.**
+
+$$J = \begin{bmatrix} 0.20 & -0.23 \\ 0.113 & 0 \end{bmatrix}$$
+
+The second diagonal entry is zero because the fixed point sits exactly where the multiplier's growth rate crosses zero. That is a general feature: any interior fixed point of this system lies on the curve $\mu(\bar F) = 0$, so $\partial \dot M / \partial M = 0$ there.
+
+**Step 4: Compute trace and determinant.**
+
+$$\text{tr}(J) = 0.20 + 0 = 0.20$$
+
+$$\det(J) = (0.20)(0) - (-0.23)(0.113) = +0.026$$
+
+**Step 5: Classify.** Using the trace-determinant shortcut from the reading guide:
+
+$$\text{discriminant} = \text{tr}(J)^2 - 4 \det(J) = 0.040 - 0.104 = -0.064$$
+
+The discriminant is negative, so the eigenvalues are complex conjugates. Solving:
+
+$$\lambda = \frac{1}{2}\bigl(0.20 \pm \sqrt{-0.064}\bigr) = 0.10 \pm 0.127 \, i$$
+
+Both eigenvalues have positive real part (0.10). The fixed point is an **unstable spiral**.
+
+**Reading the classification.** The middle equilibrium under this parameterization is not a destination. A trajectory that lands near $(1.00, 1.13)$ spirals outward: $F$ and $M$ oscillate around the fixed point, with each swing larger than the last, until the trajectory is pulled into one of the surrounding basins. The paper's case-3 saddle and this case-4 unstable spiral share the same practical reading: managed decline looks like a resting place but is not one. Any perturbation sends the system somewhere else.
+
+### How the Classification Flips
+
+Changing one detail of the functional forms can flip the verdict. Three illustrative variations, each starting from the same baseline Eq. 33 system and altering one piece, show the range. The fixed-point location shifts between rows because the alteration changes where both rates vanish.
+
+| Variation | What changes | Fixed point | $J$ | tr, det | Classification |
+|-----------|--------------|-------------|-----|---------|-----------------|
+| **Baseline** | as above | $(1.00, 1.13)$ | $\begin{pmatrix} 0.20 & -0.23 \\ 0.113 & 0 \end{pmatrix}$ | $+0.20$, $+0.026$ | Unstable spiral |
+| **Add F-saturation:** $\gamma E F (1 - F/1.2)$ | $(1.00, 0.41)$ | $\begin{pmatrix} -0.13 & -0.23 \\ 0.041 & 0 \end{pmatrix}$ | $-0.13$, $+0.0094$ | Stable spiral |
+| **Steeper $\mu'$:** slope 0.3 not 0.1 | $(1.00, 1.13)$ | $\begin{pmatrix} 0.20 & -0.23 \\ 0.339 & 0 \end{pmatrix}$ | $+0.20$, $+0.078$ | Unstable spiral (faster) |
+| **Non-monotone $\mu$:** zero-crossing at $\bar F = 2$ with negative slope there | $(2.00, 2.00)$ | $\begin{pmatrix} 0.20 & -0.23 \\ -0.15 & 0 \end{pmatrix}$ | $+0.20$, $-0.035$ | **Saddle** |
+
+The first variation is the cleanest way to make managed decline an actual attractor: a term that caps $F$ from above sends the trace negative, converting the unstable spiral into a stable one. The fourth shows a genuine saddle: one eigenvalue positive, one negative, with trajectories approaching along the stable manifold and departing along the unstable one. The saddle arises when $\mu$ has a zero-crossing with negative slope, meaning further workforce Force actively reduces the model's growth rate, which could describe a regime where an advanced workforce is outputting judgment the current model cannot encode.
+
+**Captures:** The qualitative behavior at the middle equilibrium is an arithmetic consequence of four partial derivatives. The classification is not a philosophical choice; it falls out of the signs of trace and determinant once the functional forms are specified. That calibration is what the framework leaves empirically open.
+
+---
+
+## Eq. 36: The Irreversibility Frontier
+
+$$\Omega_{\text{irreversible}} = \left\{ (F, M) \;:\; \forall \, (\alpha, \beta, \gamma) \in \Theta_{\text{feasible}}, \; (F(t), M(t)) \to \text{collapse} \right\} \qquad (36)$$
+
+The separatrix of Eq. 34 asks "given these coefficients, where is the line?" Eq. 36 asks the harder question: "given *any* coefficients the institution could actually adopt, is this state recoverable?" The answer depends on $\Theta_{\text{feasible}}$, the realizable range of the dials.
+
+Illustrative feasibility bounds for the coefficients already in play:
+
+| Coefficient | Baseline | Best feasible | Bound set by |
+|-------------|----------|---------------|---------------|
+| $\alpha$ (learning from struggle) | 0.2 | 0.4 | How much productive struggle an education system can supply |
+| $\beta$ (decay from reliance) | 0.3 | 0.1 | How far reliance habits can be suppressed by culture |
+| $\gamma$ (growth from engagement) | 0.4 | 0.7 | How much deliberate engagement can be cultivated |
+
+**Recoverable case: Ben at $(F, M) = (0.9, 1.3)$.** The current separatrix sits at $F^*(1.3) = 1.15 \cdot 1.3 = 1.495$, so Ben is below it by 0.595. Pushing coefficients to $(\alpha, \beta, \gamma) = (0.4, 0.1, 0.7)$ shifts the separatrix to $F^*(1.3) = (0.1 \cdot 0.78 + 0.1 \cdot 0.65)/(0.7 \cdot 0.5) = 0.143 / 0.35 = 0.41$. New line sits well below Ben. He is now above the separatrix. **Recoverable.**
+
+**Irreversible case: Cora at $(F, M) = (0.3, 2.5)$.** Current separatrix at $M = 2.5$: $F^* = 2.875$. Cora is below by 2.575. Even at the best feasible coefficients, the separatrix becomes $F^*(2.5) = (0.1 \cdot 1.5 + 0.1 \cdot 1.25)/(0.7 \cdot 0.5) = 0.275 / 0.35 = 0.79$. The line is still above her by 0.49. No feasible coefficient setting produces a separatrix below her state. Cora sits inside $\Omega_{\text{irreversible}}$. **Unrecoverable under any adjustment the institution can actually make.**
+
+**Captures:** Irreversibility is a geometric fact about where the feasible coefficient range allows the separatrix to fall. The window for policy closes at the crossing of the frontier $\partial \Omega$, which is inside the decay basin but strictly above the irreversibility region. A trajectory can be in serious decline and still recoverable, or look superficially similar and be lost.
