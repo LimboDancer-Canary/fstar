@@ -255,9 +255,9 @@ There is strong reason to believe force-building and force-decay are not symmetr
   <line x1="450" y1="70" x2="450" y2="100" stroke="#1a1a2e" stroke-width="1.5" marker-end="url(#tb-arr)"/>
   <polygon points="450,100 570,160 450,220 330,160" fill="none" stroke="#1a1a2e" stroke-width="1.5"/>
   <text x="450" y="155" font-family="sans-serif" font-size="13" fill="#1a1a2e" text-anchor="middle">Current force</text>
-  <text x="450" y="172" font-family="sans-serif" font-size="13" fill="#1a1a2e" text-anchor="middle">vs F*?</text>
-  <text x="330" y="195" font-family="serif" font-size="12" font-style="italic" fill="#3a86ff" text-anchor="end">F &gt; F*</text>
-  <text x="580" y="195" font-family="serif" font-size="12" font-style="italic" fill="#d62828">F &lt; F*</text>
+  <text x="450" y="172" font-family="sans-serif" font-size="13" fill="#1a1a2e" text-anchor="middle">vs F&#42;?</text>
+  <text x="330" y="195" font-family="serif" font-size="12" font-style="italic" fill="#3a86ff" text-anchor="end">F &gt; F&#42;</text>
+  <text x="580" y="195" font-family="serif" font-size="12" font-style="italic" fill="#d62828">F &lt; F&#42;</text>
   <line x1="330" y1="160" x2="175" y2="260" stroke="#3a86ff" stroke-width="1.5" marker-end="url(#tb-arr-blue)"/>
   <rect x="40" y="260" width="270" height="50" fill="none" stroke="#3a86ff" stroke-width="1.5" rx="6"/>
   <text x="175" y="282" font-family="sans-serif" font-size="12" font-weight="600" fill="#1a1a2e" text-anchor="middle">Above tipping point</text>
@@ -330,7 +330,7 @@ This interacts with tacit knowledge transmission. Not only is the volume of shar
   <rect x="490" y="30" width="200" height="190" fill="none" stroke="#1a1a2e" stroke-width="1.5" rx="6"/>
   <text x="590" y="52" font-family="sans-serif" font-size="13" font-weight="700" fill="#1a1a2e" text-anchor="middle">t = 2: Mature adoption</text>
   <line x1="510" y1="65" x2="670" y2="65" stroke="#ccc" stroke-width="1"/>
-  <text x="590" y="95" font-family="sans-serif" font-size="12" fill="#1a1a2e" text-anchor="middle">Bifurcates at F*</text>
+  <text x="590" y="95" font-family="sans-serif" font-size="12" fill="#1a1a2e" text-anchor="middle">Bifurcates at F&#42;</text>
   <text x="590" y="130" font-family="sans-serif" font-size="11" fill="#555" text-anchor="middle">Two clusters form:</text>
   <text x="590" y="145" font-family="sans-serif" font-size="11" fill="#555" text-anchor="middle">above and below</text>
   <text x="590" y="175" font-family="sans-serif" font-size="11" fill="#555" text-anchor="middle">Middle evacuated,</text>
@@ -448,7 +448,7 @@ A trajectory above $F^*(M)$ at the current value of $M$ compounds. A trajectory 
   <text x="53" y="22" font-family="serif" font-size="16" font-style="italic" fill="#1a1a2e">M</text>
   <text x="52" y="375" font-family="sans-serif" font-size="11" fill="#555" text-anchor="end">0</text>
   <path d="M 70 335 Q 200 318 280 235 T 540 70" stroke="#3a86ff" stroke-width="2.5" fill="none"/>
-  <text x="395" y="155" font-family="serif" font-size="15" font-style="italic" fill="#3a86ff">F*(M)</text>
+  <text x="395" y="155" font-family="serif" font-size="15" font-style="italic" fill="#3a86ff">F&#42;(M)</text>
   <text x="400" y="290" font-family="sans-serif" font-size="13" fill="#1a1a2e" font-weight="600">Virtuous basin</text>
   <text x="115" y="180" font-family="sans-serif" font-size="13" fill="#1a1a2e" font-weight="600">Decay basin</text>
   <text x="78" y="350" font-family="sans-serif" font-size="10" fill="#888" font-style="italic">toward collapse</text>
@@ -581,7 +581,7 @@ Three of the five families (decoupled, linear, saturating) produce portraits in 
     <text x="330" y="314" font-family="serif" font-size="14" font-style="italic" fill="#1a1a2e">F</text>
     <text x="34" y="54" font-family="serif" font-size="14" font-style="italic" fill="#1a1a2e">M</text>
     <path d="M 50 295 Q 160 275 180 210 T 310 85" stroke="#3a86ff" stroke-width="2" fill="none"/>
-    <text x="212" y="168" font-family="serif" font-size="12" font-style="italic" fill="#3a86ff">F*(M)</text>
+    <text x="212" y="168" font-family="serif" font-size="12" font-style="italic" fill="#3a86ff">F&#42;(M)</text>
     <circle cx="260" cy="105" r="5" fill="#1a1a2e"/>
     <text x="210" y="95" font-family="sans-serif" font-size="11" fill="#1a1a2e">virtuous</text>
     <circle cx="180" cy="210" r="5" fill="white" stroke="#1a1a2e" stroke-width="1.8"/>
@@ -590,7 +590,7 @@ Three of the five families (decoupled, linear, saturating) produce portraits in 
     <line x1="300" y1="230" x2="267" y2="120" stroke="#1a1a2e" stroke-width="1.2" marker-end="url(#pp2-arr)"/>
     <line x1="130" y1="250" x2="70" y2="295" stroke="#1a1a2e" stroke-width="1.2" marker-end="url(#pp2-arr)"/>
     <line x1="100" y1="180" x2="60" y2="275" stroke="#1a1a2e" stroke-width="1.2" marker-end="url(#pp2-arr)"/>
-    <text x="160" y="350" font-family="sans-serif" font-size="11" fill="#555" text-anchor="middle" font-style="italic">three regimes separated by F*(M)</text>
+    <text x="160" y="350" font-family="sans-serif" font-size="11" fill="#555" text-anchor="middle" font-style="italic">three regimes separated by F&#42;(M)</text>
   </g>
 </svg>
 
@@ -626,7 +626,7 @@ The framework's longstanding warning, *intervene before the spiral, not after*, 
   <path d="M 60 360 Q 170 350 210 305 T 400 220 Q 450 195 500 185 L 500 360 Z" fill="url(#pp4-hatch)" stroke="none"/>
   <path d="M 60 360 Q 170 350 210 305 T 400 220 Q 450 195 500 185" stroke="#d62828" stroke-width="2" fill="none" stroke-dasharray="6 3"/>
   <path d="M 70 335 Q 200 318 280 235 T 540 70" stroke="#3a86ff" stroke-width="2.5" fill="none"/>
-  <text x="395" y="155" font-family="serif" font-size="15" font-style="italic" fill="#3a86ff">F*(M)</text>
+  <text x="395" y="155" font-family="serif" font-size="15" font-style="italic" fill="#3a86ff">F&#42;(M)</text>
   <text x="385" y="275" font-family="serif" font-size="13" font-style="italic" fill="#d62828">∂Ω</text>
   <text x="410" y="278" font-family="sans-serif" font-size="11" fill="#d62828">(irreversibility frontier)</text>
   <text x="405" y="315" font-family="sans-serif" font-size="12" fill="#1a1a2e" font-weight="600">Virtuous basin</text>
