@@ -1,0 +1,1 @@
+- [Preserve prose-CSS in pandoc deploy workflow](feedback_pandoc_prose_css.md) — don't strip the `header-includes` inline `<style>` in `.github/workflows/deploy-pages.yml`; Site.css has a universal reset that wipes prose spacing.
