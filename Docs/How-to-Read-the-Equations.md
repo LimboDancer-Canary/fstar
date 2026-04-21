@@ -1,7 +1,11 @@
-# How to Read the Equations
-
-*A reading guide and symbol glossary for* **The Multiplier, Mirror and The Tipping Point**
-
+---
+title: "How to Read the Equations"
+subtitle: "A reading guide and symbol glossary for *The Multiplier, Mirror and The Tipping Point*."
+author: "Dennis A. Landi"
+category: "Reading Guide"
+folio: "№ II · b"
+project: "F-Star"
+source: "https://github.com/Realization-Engine/fstar"
 ---
 
 ## Why This Guide Exists

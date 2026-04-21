@@ -1,9 +1,12 @@
-# Mathematical basis of The Mirror
-
-**Author:** Dennis A. Landi  
-**Prepared:** 2026-03-27  
-**Purpose:** Organize the conceptual and mathematical clarification that began as an enquiry into "self-observation" as a possible new FORCE component and matured into a more general formal object: **The Mirror**.
-
+---
+title: "Mathematical basis of *The Mirror*"
+subtitle: "Organizing the conceptual and mathematical clarification that matured the Mirror from a possible new FORCE component into a formal object with substance, presentation, and failure dimensions."
+author: "Dennis A. Landi"
+date: "2026-03-27"
+category: "Derivation"
+folio: "№ II · c"
+project: "F-Star"
+source: "https://github.com/Realization-Engine/fstar"
 ---
 
 ## 1. Why this document exists

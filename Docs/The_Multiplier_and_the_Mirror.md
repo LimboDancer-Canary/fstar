@@ -1,15 +1,16 @@
-﻿# The Multiplier, Mirror and The Tipping Point
-
-*A mathematical framework for human capability under AI amplification and the future of software engineering*
-
-**Author:** Dennis A. Landi
-**Date:** 2026-04-19
-**Version:** 0.06
-**Copyright** &copy; 2026 Dennis A. Landi. All rights reserved.
-
+﻿---
+title: "The Multiplier, Mirror and *The Tipping Point*"
+subtitle: "A mathematical framework for human capability under AI amplification and the future of software engineering."
+author: "Dennis A. Landi"
+version: "0.06"
+date: "2026-04-19"
+category: "Whitepaper"
+folio: "№ II"
+project: "F-Star"
+source: "https://github.com/Realization-Engine/fstar"
 ---
 
-## Introduction
+# Introduction
 
 There is a tipping point hidden in the relationship between a human and a large language model. Above it, the LLM compounds your capability. Below it, the LLM erodes it, and the erosion can become irreversible. This article will give you the mathematical framework to identify that threshold: how it works, where it sits, and what determines which side of it you, your team, your firm, or your workforce lands on. By the end, you will understand not just what the LLM multiplies, but what it reflects, why those are different questions, and why the difference governs the future of software engineering.
 
@@ -2069,7 +2070,7 @@ The framework is strong enough to make these specific, non-obvious predictions. 
 
 ---
 
-## Appendix: The Equations
+# Appendix: The Equations
 
 ### Quick Reference
 
@@ -2716,6 +2717,6 @@ $$\Omega_{\text{irreversible}} = \left\{ (F, M) \;:\; \forall \, (\alpha, \beta,
 
 ---
 
-## Citations
+# Citations
 
 See companion document: [The_Multiplier_and_the_Mirror_Citations.md](The_Multiplier_and_the_Mirror_Citations.md)
