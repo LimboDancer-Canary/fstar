@@ -2,6 +2,8 @@
 title: "How to Read the Equations"
 subtitle: "A reading guide and symbol glossary for *The Multiplier, Mirror and The Tipping Point*."
 author: "Dennis A. Landi"
+version: "0.01"
+date: "2026-04-21"
 category: "Reading Guide"
 folio: "№ II · b"
 project: "F-Star"
