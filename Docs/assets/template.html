@@ -50,6 +50,17 @@ $endfor$
 $body$
   </article>
 
+$if(prev-url)$
+  <nav class="paper-nav" aria-label="Reading order">
+    <a class="nav-prev" rel="prev" href="$prev-url$"><span class="nav-label">Previous</span><span class="nav-title">$prev-title$</span></a>
+$if(next-url)$    <a class="nav-next" rel="next" href="$next-url$"><span class="nav-label">Next</span><span class="nav-title">$next-title$</span></a>
+$endif$  </nav>
+$else$$if(next-url)$
+  <nav class="paper-nav" aria-label="Reading order">
+    <a class="nav-next" rel="next" href="$next-url$"><span class="nav-label">Next</span><span class="nav-title">$next-title$</span></a>
+  </nav>
+$endif$$endif$
+
   <section class="colophon-bar" aria-label="Colophon">
     <div>
       <h4>About</h4>

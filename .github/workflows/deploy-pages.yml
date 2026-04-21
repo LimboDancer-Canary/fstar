@@ -89,6 +89,10 @@ jobs:
           # Papers (published with literary-journal treatment)
           for md in \
               "Docs/The_Multiplier_and_the_Mirror.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Part-One.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Part-Two.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Part-Three.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Equations.md" \
               "Docs/The_Multiplier_and_the_Mirror_Citations.md" \
               "Docs/How-to-Read-the-Equations.md" \
               "Docs/Mathematical basis of The Mirror.md" ; do
@@ -124,7 +128,13 @@ jobs:
             <ul class="doc-list">
               <li>
                 <a href="docs/The_Multiplier_and_the_Mirror.html">The Multiplier, Mirror and The Tipping Point</a>
-                <p>A mathematical framework for human capability under AI amplification and the future of software engineering.</p>
+                <p>A mathematical framework for human capability under AI amplification and the future of software engineering. Published in four parts:</p>
+                <ul>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Part-One.html">Part One, The Framework</a></li>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Part-Two.html">Part Two, Ramifications</a></li>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Part-Three.html">Part Three, Response</a></li>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Equations.html">The Equations</a></li>
+                </ul>
               </li>
               <li>
                 <a href="docs/The_Multiplier_and_the_Mirror_Citations.html">Citations and References</a>
