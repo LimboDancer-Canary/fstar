@@ -1,9 +1,13 @@
-# F* Equations Workshop
-
-*Worked examples for every equation in* **The Multiplier, Mirror and The Tipping Point**
-
-*Companion to* [How to Read the Equations](How-to-Read-the-Equations.md) *and* [The Multiplier and the Mirror](The_Multiplier_and_the_Mirror.md)
-
+---
+title: "F* Equations Workshop"
+subtitle: "Worked examples for every equation in *The Multiplier, Mirror and The Tipping Point*."
+author: "Dennis A. Landi"
+version: "0.01"
+date: "2026-04-21"
+category: "Workshop"
+folio: "Nº II, c"
+project: "F-Star"
+source: "https://github.com/Realization-Engine/fstar"
 ---
 
 The following examples use concrete numbers to walk through every equation in the framework. The numbers are illustrative, chosen to make the arithmetic easy to follow. In practice, the exact values would be calibrated to a specific organization or context; what matters here is the *shape* of the result, not the specific digits.

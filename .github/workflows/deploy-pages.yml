@@ -63,18 +63,41 @@ jobs:
 
       - name: Convert docs to HTML
         run: |
-          mkdir -p output/wwwroot/docs
-          for md in Docs/*.md; do
-            filename=$(basename "$md" .md)
-            pandoc "$md" \
+          mkdir -p output/wwwroot/docs output/wwwroot/css
+          cp Docs/assets/css/paper.css output/wwwroot/css/paper.css
+
+          # Render a paper through the variant-B template + paper.css.
+          # Body heading levels are shifted down by one so the template
+          # hero owns the document's single H1 and authored "# Part One"
+          # style headings become H2 sections without source edits.
+          render_paper() {
+            local src="$1"
+            local filename
+            filename=$(basename "$src" .md)
+            pandoc "$src" \
               --standalone \
-              --metadata title="" \
-              --css "../css/Site.css" \
+              --template=Docs/assets/template.html \
+              --shift-heading-level-by=1 \
+              --css "../css/paper.css" \
               --css "../lib/katex/katex.min.css" \
               --katex="../lib/katex/" \
               --lua-filter=/tmp/mermaid.lua \
-              --variable header-includes='<style>body { margin: 3em 3em 0 3em; max-width: 52rem; line-height: 1.6; } p { margin: 0 0 1em 0; } h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.3; } h1:first-child { margin-top: 0; } ul, ol { margin: 0 0 1em 0; padding-left: 2em; } li { margin-bottom: 0.25em; } li > p { margin-bottom: 0.25em; } li > ul, li > ol { margin-top: 0.25em; margin-bottom: 0.25em; } blockquote { margin: 1em 0; } hr { margin: 1em 0; } pre.mermaid { text-align: center; background: none; border: none; }</style><script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true});</script>' \
+              --variable header-includes='<script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true});</script>' \
               -o "output/wwwroot/docs/${filename}.html"
+          }
+
+          # Papers (published with literary-journal treatment)
+          for md in \
+              "Docs/The_Multiplier_and_the_Mirror.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Part-One.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Part-Two.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Part-Three.md" \
+              "Docs/The_Multiplier_and_the_Mirror-Equations.md" \
+              "Docs/The_Multiplier_and_the_Mirror_Citations.md" \
+              "Docs/How-to-Read-the-Equations.md" \
+              "Docs/F Star Equations Workshop.md" \
+              "Docs/Mathematical basis of The Mirror.md" ; do
+            [ -f "$md" ] && render_paper "$md"
           done
 
       - name: Add docs index page
@@ -92,6 +115,7 @@ jobs:
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 48rem; margin: 3em 3em 0 3em; padding: 0 1rem; line-height: 1.6; color: #1a1a2e; }
               h1 { border-bottom: 2px solid #3a86ff; padding-bottom: 0.5rem; }
+              h2 { margin-top: 2.5rem; font-size: 1.3rem; color: #1a1a2e; }
               a { color: #3a86ff; text-decoration: none; }
               a:hover { text-decoration: underline; }
               .doc-list { list-style: none; padding: 0; }
@@ -106,11 +130,28 @@ jobs:
             <ul class="doc-list">
               <li>
                 <a href="docs/The_Multiplier_and_the_Mirror.html">The Multiplier, Mirror and The Tipping Point</a>
-                <p>A mathematical framework for human capability under AI amplification and the future of software engineering.</p>
+                <p>A mathematical framework for human capability under AI amplification and the future of software engineering. Published in four parts:</p>
+                <ul>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Part-One.html">Part One, The Framework</a></li>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Part-Two.html">Part Two, Ramifications</a></li>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Part-Three.html">Part Three, Response</a></li>
+                  <li><a href="docs/The_Multiplier_and_the_Mirror-Equations.html">The Equations</a></li>
+                </ul>
+              </li>
+            </ul>
+            <h2>Resources</h2>
+            <ul class="doc-list">
+              <li>
+                <a href="docs/How-to-Read-the-Equations.html">How to Read the Equations</a>
+                <p>A reading guide and symbol glossary for the whitepaper.</p>
+              </li>
+              <li>
+                <a href="docs/F%20Star%20Equations%20Workshop.html">F* Equations Workshop</a>
+                <p>Worked examples for every equation in the whitepaper.</p>
               </li>
               <li>
                 <a href="docs/The_Multiplier_and_the_Mirror_Citations.html">Citations and References</a>
-                <p>Supporting citations for the concept document.</p>
+                <p>Supporting citations for the whitepaper.</p>
               </li>
             </ul>
             <a class="back-link" href="./">Back to App</a>
